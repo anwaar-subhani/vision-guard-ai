@@ -1,0 +1,392 @@
+VISIONGUARD AI - REACT-BASED MINIMAL DOMAIN MODEL
+=================================================
+
+MINIMAL DOMAIN MODEL BASED ON REACT USER INTERFACE
+==================================================
+
+Based on the React frontend analysis, here are the essential classes that directly map to the UI components:
+
+1. CORE ENTITIES (Based on React State)
+=======================================
+
+class VideoFile {
+    // Data Attributes (from React state)
+    - String id
+    - String filename
+    - String status
+    - Integer anomalies
+    - String time
+    - Float confidence
+    - String duration
+    - String timestamp
+    
+    // Methods (from React functions)
+    + upload(filePath): Boolean
+    + process(): Boolean
+    + getStatus(): String
+    + getAnomalies(): Integer
+    + getConfidence(): Float
+}
+
+class AnomalyType {
+    // Data Attributes (from React state)
+    - String id
+    - String name
+    - Boolean enabled
+    - String type
+    - String description
+    
+    // Methods (from React functions)
+    + toggle(): void
+    + enable(): void
+    + disable(): void
+    + isEnabled(): Boolean
+    + getType(): String
+}
+
+class Alert {
+    // Data Attributes (from React state)
+    - Integer id
+    - String type
+    - String description
+    - String filename
+    - String timestamp
+    - String severity
+    - String status
+    - Float confidence
+    - String videoTime
+    
+    // Methods (from React functions)
+    + getSeverity(): String
+    + getStatus(): String
+    + getConfidence(): Float
+    + updateStatus(status): void
+    + dismiss(): void
+    + view(): void
+}
+
+class Analytics {
+    // Data Attributes (from React state)
+    - String type
+    - Integer current
+    - Integer previous
+    - String trend
+    - String change
+    - String color
+    - String bg
+    
+    // Methods (from React functions)
+    + generate(): AnalyticsData
+    + getTrend(): String
+    + getChange(): String
+    + export(): Report
+}
+
+class Heatmap {
+    // Data Attributes (from React state)
+    - String zone
+    - Integer anomalies
+    - String risk
+    - String trend
+    - String color
+    - Integer intensity
+    
+    // Methods (from React functions)
+    + calculateRisk(): String
+    + getIntensity(): Integer
+    + getTrend(): String
+    + updateIntensity(): void
+}
+
+class SystemStats {
+    // Data Attributes (from React state)
+    - String title
+    - String value
+    - String color
+    - String bg
+    - String icon
+    
+    // Methods (from React functions)
+    + getValue(): String
+    + getTitle(): String
+    + getColor(): String
+    + updateValue(value): void
+}
+
+2. UI COMPONENT CLASSES (Based on React Components)
+==================================================
+
+class Dashboard {
+    // Data Attributes (from React state)
+    - List<SystemStats> stats
+    - List<VideoFile> recentAnalyses
+    - List<QuickAction> quickActions
+    
+    // Methods (from React functions)
+    + loadStats(): List<SystemStats>
+    + loadRecentAnalyses(): List<VideoFile>
+    + loadQuickActions(): List<QuickAction>
+    + navigateToAnalysis(): void
+    + navigateToAnalytics(): void
+}
+
+class VideoAnalysis {
+    // Data Attributes (from React state)
+    - List<AnomalyType> anomalyTypes
+    - List<VideoFile> recentAnalyses
+    - String selectedFile
+    
+    // Methods (from React functions)
+    + toggleAnomaly(id): void
+    + uploadVideo(file): Boolean
+    + processVideo(): Boolean
+    + selectAnomalyTypes(): List<AnomalyType>
+    + getDetectionResults(): List<DetectionResult>
+}
+
+class AlertsPage {
+    // Data Attributes (from React state)
+    - List<Alert> alerts
+    - String filter
+    - String sortBy
+    
+    // Methods (from React functions)
+    + loadAlerts(): List<Alert>
+    + filterAlerts(filter): List<Alert>
+    + sortAlerts(sortBy): List<Alert>
+    + acknowledgeAlert(id): Boolean
+    + dismissAlert(id): Boolean
+    + viewAlert(id): void
+}
+
+class AnalyticsPage {
+    // Data Attributes (from React state)
+    - List<Analytics> anomalyTrends
+    - List<TimePattern> timePatterns
+    - List<Heatmap> heatmapData
+    - List<Insight> locationInsights
+    
+    // Methods (from React functions)
+    + loadAnomalyTrends(): List<Analytics>
+    + loadTimePatterns(): List<TimePattern>
+    + loadHeatmapData(): List<Heatmap>
+    + loadLocationInsights(): List<Insight>
+    + exportReport(): Report
+    + generateHeatmap(): Heatmap
+}
+
+3. NAVIGATION AND LAYOUT CLASSES
+================================
+
+class Navigation {
+    // Data Attributes (from React state)
+    - String name
+    - String href
+    - String icon
+    - Boolean isActive
+    
+    // Methods (from React functions)
+    + navigate(href): void
+    + setActive(href): void
+    + isActive(): Boolean
+}
+
+class Layout {
+    // Data Attributes (from React state)
+    - String projectName
+    - String subtitle
+    - List<Navigation> navigation
+    - Boolean notifications
+    - String user
+    
+    // Methods (from React functions)
+    + renderHeader(): Header
+    + renderSidebar(): Sidebar
+    + renderContent(children): Content
+    + showNotifications(): void
+    + showSettings(): void
+    + showUser(): void
+}
+
+4. ENUMERATIONS (Based on React State Values)
+============================================
+
+enum ProcessingStatus {
+    UPLOADED,
+    PROCESSING,
+    COMPLETED,
+    FAILED
+}
+
+enum AlertSeverity {
+    CRITICAL,
+    HIGH,
+    MEDIUM,
+    LOW
+}
+
+enum AlertStatus {
+    ACTIVE,
+    INVESTIGATING,
+    RESOLVED,
+    DISMISSED
+}
+
+enum AnomalyCategory {
+    VISUAL,
+    AUDIO
+}
+
+enum TrendDirection {
+    UP,
+    DOWN,
+    STABLE
+}
+
+5. RELATIONSHIPS (Based on React Component Structure)
+====================================================
+
+INHERITANCE:
+- None (React uses composition over inheritance)
+
+COMPOSITION:
+- Dashboard *-- SystemStats
+- Dashboard *-- VideoFile
+- Dashboard *-- QuickAction
+- VideoAnalysis *-- AnomalyType
+- VideoAnalysis *-- VideoFile
+- AlertsPage *-- Alert
+- AnalyticsPage *-- Analytics
+- AnalyticsPage *-- Heatmap
+- Layout *-- Navigation
+
+ASSOCIATIONS:
+- VideoFile ||--o{ Alert : "generates"
+- AnomalyType ||--o{ Alert : "detects"
+- Analytics ||--o{ Heatmap : "contains"
+- Dashboard ||--o{ VideoAnalysis : "navigates to"
+- Dashboard ||--o{ AnalyticsPage : "navigates to"
+
+AGGREGATION:
+- Layout o-- Dashboard
+- Layout o-- VideoAnalysis
+- Layout o-- AlertsPage
+- Layout o-- AnalyticsPage
+
+6. REACT STATE MAPPING
+=====================
+
+Dashboard State:
+- stats: SystemStats[]
+- recentAnalyses: VideoFile[]
+- quickActions: QuickAction[]
+
+VideoAnalysis State:
+- anomalyTypes: AnomalyType[]
+- selectedFile: String
+- detectionResults: DetectionResult[]
+
+Alerts State:
+- alerts: Alert[]
+- filter: String
+- sortBy: String
+
+Analytics State:
+- anomalyTrends: Analytics[]
+- timePatterns: TimePattern[]
+- heatmapData: Heatmap[]
+- locationInsights: Insight[]
+
+7. REACT FUNCTION MAPPING
+========================
+
+Dashboard Functions:
+- loadStats() -> SystemStats[]
+- loadRecentAnalyses() -> VideoFile[]
+- navigateToAnalysis() -> void
+- navigateToAnalytics() -> void
+
+VideoAnalysis Functions:
+- toggleAnomaly(id) -> void
+- uploadVideo(file) -> Boolean
+- processVideo() -> Boolean
+- getDetectionResults() -> DetectionResult[]
+
+Alerts Functions:
+- loadAlerts() -> Alert[]
+- filterAlerts(filter) -> Alert[]
+- acknowledgeAlert(id) -> Boolean
+- dismissAlert(id) -> Boolean
+
+Analytics Functions:
+- loadAnomalyTrends() -> Analytics[]
+- loadHeatmapData() -> Heatmap[]
+- exportReport() -> Report
+- generateHeatmap() -> Heatmap
+
+8. UI-SPECIFIC CONSTRAINTS
+=========================
+
+Performance:
+- React state updates: < 100ms
+- Component rendering: < 50ms
+- Navigation: < 200ms
+
+Data:
+- Max file size: 5GB (from UI)
+- Supported formats: MP4, AVI, MOV (from UI)
+- Max concurrent users: 50 (from UI)
+
+UI Constraints:
+- Responsive design: Mobile, Tablet, Desktop
+- Color scheme: #7075b8 (from UI)
+- Theme: Light theme (from UI)
+- Icons: Lucide React icons (from UI)
+
+9. REACT COMPONENT HIERARCHY
+===========================
+
+App
+├── Layout
+│   ├── Header
+│   │   ├── ProjectName
+│   │   ├── Notifications
+│   │   └── User
+│   └── Sidebar
+│       └── Navigation
+└── Pages
+    ├── Dashboard
+    │   ├── Stats
+    │   ├── RecentAnalyses
+    │   └── QuickActions
+    ├── VideoAnalysis
+    │   ├── UploadSection
+    │   ├── AnomalySelection
+    │   └── DetectionResults
+    ├── Alerts
+    │   ├── AlertSummary
+    │   ├── AlertFilters
+    │   └── AlertList
+    └── Analytics
+        ├── AnomalyTrends
+        ├── TimePatterns
+        ├── HeatmapData
+        └── LocationInsights
+
+10. MINIMAL IMPLEMENTATION REQUIREMENTS
+=======================================
+
+Frontend Requirements:
+- React 18+ with TypeScript
+- Tailwind CSS for styling
+- shadcn/ui components
+- React Router for navigation
+- Lucide React for icons
+
+Backend Requirements:
+- REST API endpoints
+- File upload handling
+- Real-time notifications
+- Database persistence
+
+This minimal domain model directly reflects the React frontend structure and provides the essential classes needed to implement the VisionGuard AI system based on the actual UI components and state management.

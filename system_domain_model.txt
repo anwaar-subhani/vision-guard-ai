@@ -1,0 +1,215 @@
+VISIONGUARD AI - MINIMAL SYSTEM DOMAIN MODEL
+===========================================
+
+MINIMAL SYSTEM DOMAIN MODEL (Essential Business Logic Only)
+===========================================================
+
+1. CORE SYSTEM ENTITIES (8 classes only)
+=========================================
+
+class VideoFile {
+    // Essential Data Attributes
+    - String fileId
+    - String filename
+    - ProcessingStatus status
+    - Float confidence
+    
+    // Essential Methods
+    + upload(): Boolean
+    + process(): Boolean
+    + getStatus(): ProcessingStatus
+}
+
+class AnomalyDetection {
+    // DATA ENTITY: Stores detection results from AnomalyDetector
+    // Essential Data Attributes
+    - String detectionId
+    - String videoId
+    - String type
+    - Float confidence
+    - SeverityLevel severity
+    - String timestamp
+    - String location
+    
+    // Essential Methods
+    + getConfidence(): Float
+    + getSeverity(): SeverityLevel
+    + getTimestamp(): String
+    + getLocation(): String
+}
+
+class Alert {
+    // Essential Data Attributes
+    - String alertId
+    - String detectionId
+    - SeverityLevel severity
+    - AlertStatus status
+    
+    // Essential Methods
+    + trigger(): Boolean
+    
+}
+
+class Analytics {
+    // Essential Data Attributes
+    - String analyticsId
+    - Map<String, Object> data
+    
+    // Essential Methods
+    + view(): Map
+}
+
+class VideoAnalyzer {
+    // Essential Data Attributes
+    - String analyzerId
+    - Boolean isActive
+    - String videoInputHandler
+    - String framePreprocessor
+    - String motionDetector
+    - String objectTracker
+    - String featureExtractor
+    - String featureEncoder
+    
+    // Essential Methods
+    + handleVideoInput(videoStream): Boolean
+    + preprocessFrames(frames): Boolean
+    + detectMotion(frames): Boolean
+    + trackObjects(motionMask): Boolean
+    + extractFeatures(objectData): Boolean
+    + encodeFeatures(features): Boolean
+    + analyzeVideo(videoFile): Boolean
+}
+
+class AudioAnalyzer {
+    // Essential Data Attributes
+    - String analyzerId
+    - Boolean isActive
+    - String audioInputHandler
+    - String audioPreprocessor
+    - String featureExtractor
+    - String temporalPatternAnalyzer
+    - String featureEncoder
+    
+    // Essential Methods
+    + handleAudioInput(audioStream): Boolean
+    + preprocessAudio(audioSignal): Boolean
+    + extractFeatures(audioSignal): Boolean
+    + analyzeTemporalPatterns(features): Boolean
+    + encodeFeatures(descriptors): Boolean
+    + analyzeAudio(audioStream): Boolean
+}
+
+class AnomalyDetector {
+    // PROCESSING SUBSYSTEM: AI engine that processes features and creates AnomalyDetection records
+    // Essential Data Attributes
+    - String detectorId
+    - Boolean isActive
+    - String featureMerger
+    - String featurePreprocessor
+    - String deepLearningModel
+    - String decisionModule
+    - String alertLoggingSystem
+    
+    // Essential Methods
+    + mergeFeatures(videoFeatures, audioFeatures): Boolean
+    + preprocessFeatures(unifiedFeatures): Boolean
+    + runDeepLearningModel(featureTensor): Boolean
+    + makeDecision(probabilities): Boolean
+    + triggerAlert(eventLabel): Boolean
+    + detectAnomaly(videoFeatures, audioFeatures): AnomalyDetection
+}
+
+class User {
+    // Essential Data Attributes
+    - String userId
+    - String username
+    - String role
+    - Boolean isActive
+    
+    // Essential Methods
+    + login(): Boolean
+    + getPermissions(): String[]
+    + receiveAlert(alert): Boolean
+}
+
+
+2. ESSENTIAL ENUMERATIONS (3 enums only)
+========================================
+
+enum ProcessingStatus {
+    UPLOADED,
+    PROCESSING,
+    COMPLETED,
+    FAILED
+}
+
+enum SeverityLevel {
+    CRITICAL,
+    HIGH,
+    MEDIUM,
+    LOW
+}
+
+enum AlertStatus {
+    ACTIVE,
+    RESOLVED,
+    DISMISSED
+}
+
+3. ESSENTIAL RELATIONSHIPS
+===========================
+
+ASSOCIATIONS:
+- VideoFile ||--o{ AnomalyDetection : "generates"
+- AnomalyDetection ||--o{ Alert : "triggers"
+- Analytics ||--o{ VideoFile : "analyzes"
+- VideoAnalyzer ||--o{ AnomalyDetector : "feeds"
+- AudioAnalyzer ||--o{ AnomalyDetector : "feeds"
+- AnomalyDetector ||--o{ AnomalyDetection : "creates"
+- User ||--o{ Alert : "receives"
+
+4. SYSTEM USE CASE MAPPING
+===========================
+
+Upload Video Files:
+- VideoFile.upload()
+
+Process Video Analysis:
+- VideoFile.process()
+- VideoAnalyzer.handleVideoInput()
+- VideoAnalyzer.preprocessFrames()
+- VideoAnalyzer.detectMotion()
+- VideoAnalyzer.trackObjects()
+- VideoAnalyzer.extractFeatures()
+- VideoAnalyzer.encodeFeatures()
+
+Process Audio Analysis:
+- AudioAnalyzer.handleAudioInput()
+- AudioAnalyzer.preprocessAudio()
+- AudioAnalyzer.extractFeatures()
+- AudioAnalyzer.analyzeTemporalPatterns()
+- AudioAnalyzer.encodeFeatures()
+
+Detect Anomalies:
+- AnomalyDetector.mergeFeatures()
+- AnomalyDetector.preprocessFeatures()
+- AnomalyDetector.runDeepLearningModel()
+- AnomalyDetector.makeDecision()
+- AnomalyDetector.detectAnomaly() → creates AnomalyDetection
+- AnomalyDetector.triggerAlert()
+
+Generate Security Alerts:
+- Alert.trigger()
+- User.receiveAlert()
+
+View Alert Dashboard:
+- User.login()
+- Analytics.view()
+
+Generate Analytics Reports:
+- Analytics.generate()
+
+Export Detection Results:
+- Analytics.export()
+
+This minimal system domain model contains only the essential entities needed for the VisionGuard AI system core functionality.

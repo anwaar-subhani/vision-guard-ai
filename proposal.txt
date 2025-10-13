@@ -1,0 +1,89 @@
+Abstract
+CCTV (Closed Circuit Television) cameras are commonly used for safety, security, deterring
+illegal activities and for investigation purposes. Traditional systems require manual monitoring
+of the large video volumes which often causes to miss crucial events due to human error. There
+is a need to alleviate manual monitoring and move one step ahead to process the audio and
+video streams in real time and detect anomalies to prevent mishaps and ensure public safety.
+This project aims to develop an AI-powered anomaly detection system that combines computer
+vision and audio analysis to automatically identify unusual activities and security threats in real
+time. By integrating the intelligent detection with alerting tool, the system reduces high
+dependence on continuous human supervision. The proposed work will take comprehensive
+audio and video training datasets and will use model-based training to make a live anomaly
+detection system that demonstrates how artificial intelligence can transform conventional
+surveillance into a scalable and efficient solution for enhancing security in diverse
+environments.
+Introduction
+In the modern world, CCTV cameras are installed almost everywhere from huge organizations
+including educational institutes & workplaces to small shops, and from transport hubs to public
+areas. They are widely used to maintain security, monitor activities, and play vital role in
+investigations when unfortunate incidents occur. Although these systems are pretty useful, they
+primarily operate in the conventional manner requiring humans to sit and watch live streams
+or maybe complete footage after the incident has already occurred. This manual approach is
+not only exhausting but also prone to human error, due to which many critical events could be
+overlooked.
+Empowering the surveillance systems with artificial intelligence can make such systems
+smarter by detecting anomalous activities on their own. Instead of analyzing long video streams
+to identify critical events, AI (Artificial Intelligence) models can analyze video and audio
+streams in real time to identify potentially dangerous situations, strange behaviors or threats.
+This presents an opportunity to shift from reactive monitoring to proactive monitoring where
+the issues can be addressed as they arise.
+To develop an AI-powered anomaly detection system for CCTV surveillance, the system
+should integrate audio and video analysis to automatically identify unusual behaviors,
+suspicious objects, loud or alarming sounds, even potential medical issues from human posture
+and other anomalies. This integration would allow for real-time alerts and analytics to support
+faster responses and better decision-making. By reducing the dependency on constant human
+monitoring, the project aims to improve the reliability, efficiency, and effectiveness of
+surveillance systems in real-world environments.
+Goals and Objectives
+The objectives of this project include:
+- To design an AI-powered CCTV anomaly detection system.
+- To identify critical audio anomalies such as screams, gunshots, or alarms.
+Video Surveillance Anomaly Detector 2
+- To analyze human posture for detecting potential medical issues, for example,
+fainting due to any medical condition.
+- To build a real-time alert system for quick reporting of incidents.
+- To adapt the system for different zones and varying environmental conditions.
+- To provide additional analytics like heatmaps for understanding movement patterns.
+- To make surveillance more reliable and reduce dependency on manual monitoring.
+Scope of the Project
+A prototype system that combines audio & video analysis for anomaly detection will be
+designed and developed as part of the project. The video analysis part will include features
+such as posture and behavior recognition (including detection of medical issues like fainting),
+suspicious object detection, overcrowding alerts, and monitoring of incidents such as
+unauthorized entry. The audio module will detect unusual sounds like gunshots, screams, or
+glass breaking. The system will also generate real-time alerts and provide basic analytics such
+as heatmaps to analyze frequently used areas.
+The focus will remain on real-time anomaly detection and alerting within the prototype.
+Advanced features like forensic investigation, cloud-based large-scale deployment, or
+integration with external security databases will not be included in the current scope. The final
+system will demonstrate how AI can make CCTV surveillance more efficient, automated, and
+useful in preventing or responding to security incidents.
+Initial Study and Work Done so Far
+The earliest work we reviewed was by Yu et al. [1]. They came up with a cloze-test based
+method where the model predicted missing parts of a video and compared them with the actual
+sequence. If the prediction was very different, the event was flagged as an anomaly. This idea
+was interesting because it captured both spatial and temporal features effectively.
+In 2022, Zaheer et al. [2] presented a Generative Cooperative Learning (GCL) framework that
+worked in an unsupervised way. They used a generator and a discriminator in a cooperative
+manner, making it possible to detect anomalies without labeled data. Zhao, M. et al. [3] also
+worked in the same year, but their focus was on spatial-temporal correlations, mainly looking
+at how objects and behaviors change across time and space. These works showed improvement
+in accuracy and efficiency.
+Also previously, Zhu, Chen, and Sultani [4] worked on smart surveillance in 2020. Their
+method detected and localized abnormal events in both space and time, which made it quite
+useful for CCTV style applications. Guerra, B. et al. [5] looked at another angle by working on
+automatic pose recognition for risky situations, especially in assisted living. Their system
+tracked skeletons to detect things like falls or abnormal postures, which was a different but
+useful approach.
+Later, Leporowski et al. [6] included audio along with video. They built an audio-visual dataset
+for traffic surveillance and showed that combining the two signals gave better results, like
+detecting a crash from both horn and visuals. Sun, L. et al. [7] then developed a high-speed
+Video Surveillance Anomaly Detector 3
+anomaly detection model that smooths feature trajectories for more accuracy. Their system
+worked in real-time and could scale up for bigger setups.
+From this literature, we can see that although the field has moved forward, most works still
+stayed narrow in scope. Some focused only on video, some on posture, some just in traffic, etc.
+None of them really tried to combine multiple important factors like video, audio, posture, and
+contextual awareness together. Our project aims to fill this gap by combining video and audio
+anomaly detection, supported by posture analysis, zone sensitivity, and real-time alerts to make
+surveillance more practical for Pakistani environments like hospitals, schools, and markets.
