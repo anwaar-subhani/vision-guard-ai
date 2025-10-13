@@ -41,39 +41,39 @@ export default function VideoAnalysis() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Video Analysis</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="px-4 sm:px-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Video Analysis</h2>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Upload and analyze CCTV footage with AI-powered anomaly detection
         </p>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Upload Section */}
         <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-gray-800 text-base">
-              <Upload className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-gray-800 text-base sm:text-lg">
+              <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
               Upload Video
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs sm:text-sm">
               Select video files for AI analysis
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-              <FileVideo className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-              <h3 className="font-medium text-gray-900 mb-1 text-sm">Drop video files here</h3>
-              <p className="text-gray-600 mb-2 text-xs">or click to browse files</p>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-gray-400 transition-colors">
+              <FileVideo className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">Drop video files here</h3>
+              <p className="text-gray-600 mb-3 text-xs sm:text-sm">or click to browse files</p>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="mb-1 text-xs border-[#7075b8] text-[#7075b8] hover:bg-[#7075b8] hover:text-white"
+                className="mb-2 text-xs sm:text-sm border-[#7075b8] text-[#7075b8] hover:bg-[#7075b8] hover:text-white"
               >
-                <Upload className="h-3 w-3 mr-1" />
+                <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 Choose Files
               </Button>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 MP4, AVI, MOV up to 5GB
               </p>
             </div>
@@ -82,22 +82,22 @@ export default function VideoAnalysis() {
 
         {/* Anomaly Selection */}
         <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-gray-800 text-base">
-              <Settings className="h-4 w-4" />
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-gray-800 text-base sm:text-lg">
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
               Select Anomalies
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs sm:text-sm">
               Choose which anomalies to detect
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {anomalyTypes.map((anomaly) => (
                 <Button
                   key={anomaly.id}
                   variant={anomaly.enabled ? "default" : "outline"}
-                  className={`h-auto p-2 flex flex-col items-center gap-1 cursor-pointer ${
+                  className={`h-auto p-3 sm:p-4 flex flex-col items-center gap-2 cursor-pointer ${
                     anomaly.enabled 
                       ? 'text-white border-[#7075b8]' 
                       : 'hover:bg-gray-50 border-gray-200'
@@ -105,7 +105,7 @@ export default function VideoAnalysis() {
                   style={anomaly.enabled ? { backgroundColor: '#7075b8' } : {}}
                   onClick={() => toggleAnomaly(anomaly.id)}
                 >
-                  <div className={`p-1 rounded ${
+                  <div className={`p-2 rounded ${
                     anomaly.enabled 
                       ? 'bg-white/20' 
                       : anomaly.type === 'audio' 
@@ -113,17 +113,17 @@ export default function VideoAnalysis() {
                         : 'bg-red-100'
                   }`}>
                     {anomaly.type === 'audio' ? (
-                      <Volume2 className={`h-3 w-3 ${
+                      <Volume2 className={`h-4 w-4 sm:h-5 sm:w-5 ${
                         anomaly.enabled ? 'text-white' : 'text-orange-600'
                       }`} />
                     ) : (
-                      <AlertTriangle className={`h-3 w-3 ${
+                      <AlertTriangle className={`h-4 w-4 sm:h-5 sm:w-5 ${
                         anomaly.enabled ? 'text-white' : 'text-red-600'
                       }`} />
                     )}
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-xs">{anomaly.name}</div>
+                    <div className="font-medium text-xs sm:text-sm">{anomaly.name}</div>
                     <div className={`text-xs ${
                       anomaly.enabled ? 'text-white/80' : 'text-gray-500'
                     }`}>

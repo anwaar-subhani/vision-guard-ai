@@ -55,18 +55,19 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="px-4 sm:px-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h2>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Anomaly detection patterns and security insights
         </p>
       </div>
 
       {/* Export Controls */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end px-4 sm:px-0">
         <Button variant="outline" size="sm" className="border-gray-300">
           <Download className="h-4 w-4 mr-2" />
-          Export Report
+          <span className="hidden sm:inline">Export Report</span>
+          <span className="sm:hidden">Export</span>
         </Button>
       </div>
 

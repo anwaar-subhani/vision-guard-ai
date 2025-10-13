@@ -47,26 +47,26 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900">Welcome to VisionGuard AI</h2>
-        <p className="text-lg text-gray-600 mt-2">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="text-center px-4">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome to VisionGuard AI</h2>
+        <p className="text-base sm:text-lg text-gray-600 mt-2">
           Upload your CCTV footage and let AI detect anomalies automatically
         </p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.title} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{stat.title}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                <div className={`p-2 sm:p-3 rounded-xl ${stat.bg} flex-shrink-0`}>
+                  <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                 </div>
               </div>
             </CardContent>
@@ -74,12 +74,11 @@ export default function Dashboard() {
         ))}
       </div>
 
-
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Recent Analyses */}
         <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-800">
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
               <FileVideo className="h-5 w-5" />
               Recent Analyses
             </CardTitle>
@@ -90,18 +89,18 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-3">
               {recentAnalyses.map((analysis) => (
-                <div key={analysis.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{analysis.filename}</span>
+                <div key={analysis.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors gap-3">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="font-medium text-gray-900 truncate">{analysis.filename}</span>
                       <Badge 
                         variant={analysis.status === 'completed' ? 'default' : 'secondary'}
-                        className={analysis.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}
+                        className={`${analysis.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} flex-shrink-0`}
                       >
                         {analysis.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                       <span>Anomalies: {analysis.anomalies}</span>
                       {analysis.confidence > 0 && (
                         <span>Confidence: {analysis.confidence}%</span>
@@ -112,7 +111,7 @@ export default function Dashboard() {
                       {analysis.time}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="flex-shrink-0 w-full sm:w-auto">
                     View
                   </Button>
                 </div>
@@ -123,8 +122,8 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-800">
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
               <Activity className="h-5 w-5" />
               Quick Actions
             </CardTitle>
@@ -138,14 +137,14 @@ export default function Dashboard() {
                 <Button
                   key={action.title}
                   variant={action.primary ? "default" : "outline"}
-                  className={`w-full h-auto p-4 justify-start ${action.bg} ${action.color} hover:shadow-md transition-all`}
+                  className={`w-full h-auto p-3 sm:p-4 justify-start ${action.bg} ${action.color} hover:shadow-md transition-all`}
                   onClick={() => window.location.href = action.href}
                 >
                   <div className="flex items-center gap-3">
-                    <action.icon className="h-5 w-5" />
-                    <div className="text-left">
-                      <div className="font-medium">{action.title}</div>
-                      <div className="text-sm opacity-80">{action.description}</div>
+                    <action.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <div className="text-left min-w-0 flex-1">
+                      <div className="font-medium text-sm sm:text-base">{action.title}</div>
+                      <div className="text-xs sm:text-sm opacity-80 truncate">{action.description}</div>
                     </div>
                   </div>
                 </Button>

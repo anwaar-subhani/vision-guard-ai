@@ -111,15 +111,15 @@ export default function Alerts() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Security Alerts</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="px-4 sm:px-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Security Alerts</h2>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           AI-detected anomalies from your video analysis
         </p>
       </div>
 
       {/* Alert Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-white border border-gray-200 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
