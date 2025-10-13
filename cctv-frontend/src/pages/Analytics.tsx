@@ -73,8 +73,8 @@ export default function Analytics() {
       </div>
 
       {/* Anomaly Trends */}
-      <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
-        <CardHeader className="border-b border-[#4a5a6b]/10">
+      <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
+        <CardHeader className="border-b border-[#4a5a6b]/20">
           <CardTitle className="flex items-center gap-2 text-gray-800">
             <AlertTriangle className="h-5 w-5 text-[#4a5a6b]" />
             Anomaly Detection Trends
@@ -123,7 +123,7 @@ export default function Analytics() {
       </Card>
 
       {/* Heatmap Analytics */}
-      <Card className="bg-white border border-gray-200 shadow-sm">
+      <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-800">
             <Thermometer className="h-5 w-5" />
@@ -188,7 +188,7 @@ export default function Analytics() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Time-based Patterns */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-gray-800">
               <Clock className="h-5 w-5" />
@@ -228,7 +228,7 @@ export default function Analytics() {
         </Card>
 
         {/* Location Insights */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-gray-800">
               <Target className="h-5 w-5" />

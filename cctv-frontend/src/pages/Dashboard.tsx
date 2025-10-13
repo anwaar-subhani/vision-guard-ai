@@ -59,7 +59,7 @@ export default function Dashboard() {
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+          <Card key={stat.title} className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
@@ -77,8 +77,8 @@ export default function Dashboard() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Recent Analyses */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader className="pb-3 sm:pb-4 border-b border-[#4a5a6b]/10">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
+          <CardHeader className="pb-3 sm:pb-4 border-b border-[#4a5a6b]/20">
             <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
               <FileVideo className="h-5 w-5 text-[#4a5a6b]" />
               Recent Analyses
@@ -122,8 +122,8 @@ export default function Dashboard() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader className="pb-3 sm:pb-4 border-b border-[#4a5a6b]/10">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
+          <CardHeader className="pb-3 sm:pb-4 border-b border-[#4a5a6b]/20">
             <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
               <Activity className="h-5 w-5 text-[#4a5a6b]" />
               Quick Actions

@@ -121,7 +121,7 @@ export default function Alerts() {
 
       {/* Alert Summary */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -134,7 +134,7 @@ export default function Alerts() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -149,7 +149,7 @@ export default function Alerts() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -164,7 +164,7 @@ export default function Alerts() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -200,7 +200,7 @@ export default function Alerts() {
         {alerts.map((alert) => {
           const TypeIcon = getTypeIcon(alert.type)
           return (
-            <Card key={alert.id} className={`bg-white border shadow-sm ${getSeverityBg(alert.severity)}`}>
+            <Card key={alert.id} className={`bg-white border border-[#4a5a6b]/30 shadow-sm ${getSeverityBg(alert.severity)}`}>
               <CardContent className="p-4">
                 {/* Mobile-first layout */}
                 <div className="space-y-3">

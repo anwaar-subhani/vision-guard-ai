@@ -80,7 +80,7 @@ export default function LiveMonitoring() {
 
       {/* Live Alerts */}
       {liveAlerts.length > 0 && (
-        <Card className="bg-white border border-red-200 shadow-sm">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
           <CardHeader className="bg-red-50 border-b border-red-200">
             <CardTitle className="flex items-center gap-2 text-red-700 text-lg">
               <AlertTriangle className="h-5 w-5 text-[#4a5a6b]" />
@@ -125,7 +125,7 @@ export default function LiveMonitoring() {
       {/* Camera Grid */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {cameraFeeds.map((camera) => (
-          <Card key={camera.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+          <Card key={camera.id} className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
             <CardHeader className="bg-blue-50 border-b border-blue-200">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -241,7 +241,7 @@ export default function LiveMonitoring() {
       </div>
 
       {/* System Status */}
-      <Card className="bg-white border border-gray-200 shadow-sm">
+      <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
         <CardHeader className="bg-green-50 border-b border-green-200">
             <CardTitle className="flex items-center gap-2 text-green-700 text-lg">
               <Activity className="h-5 w-5 text-[#0a1a3a]" />

@@ -51,7 +51,7 @@ export default function VideoAnalysis() {
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Upload Section */}
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardHeader className="pb-2 sm:pb-3 border-b border-[#4a5a6b]/10">
             <CardTitle className="flex items-center gap-2 text-gray-800 text-base sm:text-lg">
               <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5a6b]" />
@@ -82,7 +82,7 @@ export default function VideoAnalysis() {
         </Card>
 
         {/* Anomaly Selection */}
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/20">
+        <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
           <CardHeader className="pb-2 sm:pb-3 border-b border-[#4a5a6b]/10">
             <CardTitle className="flex items-center gap-2 text-gray-800 text-base sm:text-lg">
               <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5a6b]" />
@@ -139,7 +139,7 @@ export default function VideoAnalysis() {
       </div>
 
       {/* Analysis Results */}
-      <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow hover:border-[#0a1a3a]/20">
+      <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
         <CardHeader className="border-b border-[#4a5a6b]/10">
           <CardTitle className="flex items-center gap-2 text-gray-800">
             <AlertTriangle className="h-5 w-5 text-[#4a5a6b]" />
