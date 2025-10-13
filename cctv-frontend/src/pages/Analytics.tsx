@@ -7,7 +7,6 @@ import {
   TrendingDown,
   Clock,
   Download,
-  BarChart3,
   Volume2,
   Eye,
   Shield,
@@ -15,7 +14,6 @@ import {
   MapPin,
   Target,
   Thermometer,
-  Layers
 } from 'lucide-react'
 
 export default function Analytics() {
@@ -33,12 +31,12 @@ export default function Analytics() {
     { time: '18:00-24:00', anomalies: 5, severity: 'Medium', pattern: 'Evening activity' },
   ]
 
-  const anomalyInsights = [
-    { insight: 'Most anomalies occur during business hours (12:00-18:00)', confidence: 'High', impact: 'Security risk' },
-    { insight: 'Audio anomalies have decreased by 33% this week', confidence: 'Medium', impact: 'System improvement' },
-    { insight: 'Suspicious activity peaks on weekdays', confidence: 'High', impact: 'Pattern recognition' },
-    { insight: 'Unauthorized access incidents doubled', confidence: 'Critical', impact: 'Security alert' },
-  ]
+  // const anomalyInsights = [
+  //   { insight: 'Most anomalies occur during business hours (12:00-18:00)', confidence: 'High', impact: 'Security risk' },
+  //   { insight: 'Audio anomalies have decreased by 33% this week', confidence: 'Medium', impact: 'System improvement' },
+  //   { insight: 'Suspicious activity peaks on weekdays', confidence: 'High', impact: 'Pattern recognition' },
+  //   { insight: 'Unauthorized access incidents doubled', confidence: 'Critical', impact: 'Security alert' },
+  // ]
 
   const heatmapData = [
     { zone: 'Main Entrance', anomalies: 15, risk: 'High', trend: '+25%', color: 'bg-red-500', intensity: 85 },

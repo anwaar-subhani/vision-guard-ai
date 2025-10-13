@@ -10,12 +10,6 @@ import {
   Volume2,
   Settings,
   FileVideo,
-  CheckCircle,
-  Clock,
-  Eye,
-  BarChart3,
-  Zap,
-  Shield
 } from 'lucide-react'
 
 export default function VideoAnalysis() {
@@ -39,11 +33,11 @@ export default function VideoAnalysis() {
     )
   }
 
-  const recentAnalyses = [
-    { id: 1, filename: 'security_footage_001.mp4', status: 'completed', anomalies: 3, duration: '2:45', timestamp: '2024-01-15 14:30', confidence: 94 },
-    { id: 2, filename: 'parking_lot_night.mp4', status: 'processing', anomalies: 0, duration: '5:12', timestamp: '2024-01-15 14:25', confidence: 0 },
-    { id: 3, filename: 'lobby_morning.mp4', status: 'completed', anomalies: 1, duration: '3:20', timestamp: '2024-01-15 14:20', confidence: 87 },
-  ]
+  // const recentAnalyses = [
+  //   { id: 1, filename: 'security_footage_001.mp4', status: 'completed', anomalies: 3, duration: '2:45', timestamp: '2024-01-15 14:30', confidence: 94 },
+  //   { id: 2, filename: 'parking_lot_night.mp4', status: 'processing', anomalies: 0, duration: '5:12', timestamp: '2024-01-15 14:25', confidence: 0 },
+  //   { id: 3, filename: 'lobby_morning.mp4', status: 'completed', anomalies: 1, duration: '3:20', timestamp: '2024-01-15 14:20', confidence: 87 },
+  // ]
 
   return (
     <div className="space-y-6">

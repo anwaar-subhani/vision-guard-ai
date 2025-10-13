@@ -6,10 +6,8 @@ import {
   AlertTriangle, 
   Activity, 
   Shield,
-  TrendingUp,
   Clock,
   FileVideo,
-  CheckCircle,
   BarChart3
 } from 'lucide-react'
 

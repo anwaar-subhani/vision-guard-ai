@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -7,7 +7,6 @@ import {
   Camera,
   Activity,
   Upload,
-  Play,
   Bell,
   User
 } from 'lucide-react'
