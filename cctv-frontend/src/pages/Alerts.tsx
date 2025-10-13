@@ -181,15 +181,15 @@ export default function Alerts() {
       </div>
 
       {/* Filter and Export */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="border-gray-300">
             <Filter className="h-4 w-4 mr-2" />
-            Filter
+            <span className="hidden sm:inline">Filter</span>
           </Button>
           <Button variant="outline" size="sm" className="border-gray-300">
             <Download className="h-4 w-4 mr-2" />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </Button>
         </div>
       </div>
@@ -201,11 +201,15 @@ export default function Alerts() {
           return (
             <Card key={alert.id} className={`bg-white border shadow-sm ${getSeverityBg(alert.severity)}`}>
               <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
+                {/* Mobile-first layout */}
+                <div className="space-y-3">
+                  {/* Header with type and badges */}
+                  <div className="flex flex-col space-y-2">
                     <div className="flex items-center gap-2">
-                      <TypeIcon className="h-4 w-4 text-gray-600" />
-                      <h3 className="font-semibold text-gray-900">{alert.type}</h3>
+                      <TypeIcon className="h-4 w-4 text-gray-600 flex-shrink-0" />
+                      <h3 className="font-semibold text-gray-900 text-base">{alert.type}</h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge 
                         variant={getSeverityColor(alert.severity)}
                         className="text-xs"
@@ -219,14 +223,20 @@ export default function Alerts() {
                         {alert.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-700">{alert.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-sm text-gray-700 leading-relaxed">{alert.description}</p>
+
+                  {/* File info - stacked on mobile */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <FileVideo className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{alert.filename}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        <FileVideo className="h-3 w-3" />
-                        {alert.filename}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3 w-3 flex-shrink-0" />
                         {alert.timestamp}
                       </div>
                       <div className="text-gray-500">
@@ -234,14 +244,18 @@ export default function Alerts() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900">Confidence: {alert.confidence}%</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button variant="outline" size="sm" className="border-gray-300">
+
+                  {/* Confidence and actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-gray-200">
+                    <div className="text-sm font-medium text-gray-900">
+                      Confidence: {alert.confidence}%
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="border-gray-300 flex-1 sm:flex-none">
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="border-gray-300">
+                      <Button variant="outline" size="sm" className="border-gray-300 flex-1 sm:flex-none">
                         <Trash2 className="h-3 w-3 mr-1" />
                         Dismiss
                       </Button>

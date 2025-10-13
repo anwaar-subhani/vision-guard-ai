@@ -150,11 +150,11 @@ export default function VideoAnalysis() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-red-900">Suspicious Activity Detected</span>
-                  <Badge variant="destructive">High Priority</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-red-200 rounded-lg bg-red-50 gap-3">
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="font-medium text-red-900 truncate">Suspicious Activity Detected</span>
+                  <Badge variant="destructive" className="flex-shrink-0">High Priority</Badge>
                 </div>
                 <div className="text-sm text-red-700">
                   Video: security_footage_001.mp4 • Time: 1:23 • Confidence: 94%
@@ -163,23 +163,23 @@ export default function VideoAnalysis() {
                   Person loitering near restricted area for extended period
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                   <Play className="h-3 w-3 mr-1" />
                   Review
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                   <Download className="h-3 w-3 mr-1" />
                   Export
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-yellow-200 rounded-lg bg-yellow-50">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-yellow-900">Unusual Sound Detected</span>
-                  <Badge variant="secondary">Medium Priority</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-yellow-200 rounded-lg bg-yellow-50 gap-3">
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="font-medium text-yellow-900 truncate">Unusual Sound Detected</span>
+                  <Badge variant="secondary" className="flex-shrink-0">Medium Priority</Badge>
                 </div>
                 <div className="text-sm text-yellow-700">
                   Video: parking_lot_night.mp4 • Time: 2:45 • Confidence: 87%
@@ -188,12 +188,12 @@ export default function VideoAnalysis() {
                   Loud noise detected - possible glass breaking
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                   <Play className="h-3 w-3 mr-1" />
                   Review
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                   <Download className="h-3 w-3 mr-1" />
                   Export
                 </Button>
