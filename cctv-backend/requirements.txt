@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+numpy
+torch
+torchvision
+torchaudio
+librosa
+imageio-ffmpeg
+opencv-python
+Pillow
+mediapipe

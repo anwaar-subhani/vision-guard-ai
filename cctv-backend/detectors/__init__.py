@@ -1,0 +1,27 @@
+"""
+Detector registry.
+
+Maps each anomaly ID (matching the frontend toggle IDs) to a detect function.
+Every detect function has the signature:
+
+    detect(video_path: str, model_dir: str) -> list[dict]
+
+and returns a list of event dicts like:
+    {"time": 1.23, "confidence": 91.5, "label": "Gunshot"}
+"""
+
+from detectors.gunshot_detector import detect as detect_gunshot
+from detectors.fight_detector import detect as detect_fight
+from detectors.fall_detector import detect as detect_fall
+from detectors.scream_detector import detect as detect_scream
+from detectors.explosion_detector import detect as detect_explosion
+from detectors.crowd_detector import detect as detect_crowd
+
+DETECTOR_REGISTRY: dict[str, callable] = {
+    "gunshot_audio": detect_gunshot,
+    "fight_visual": detect_fight,
+    "sudden_fall_visual": detect_fall,
+    "scream_audio": detect_scream,
+    "explosion_fire_visual": detect_explosion,
+    "crowd_gathering_visual": detect_crowd,
+}
