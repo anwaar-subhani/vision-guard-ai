@@ -47,6 +47,12 @@ If model files are large and exceed GitHub limits, use Git LFS for:
 
 4) Commit and push
 - Initialize git (if not already), add remote, commit, push to GitHub.
+- Repo URL:
+  https://github.com/anwaar-subhani/vision-guard-ai
+- If remote is not set yet, use:
+  git remote add origin https://github.com/anwaar-subhani/vision-guard-ai.git
+- Then push:
+  git push -u origin main
 - Verify repo contains:
   - cctv-backend/
   - cctv-frontend/
@@ -73,7 +79,7 @@ Pre-requisites on target PC
 1) Clone repository
 - Choose folder (example): c:\Users\<you>\Desktop
 - Clone repo:
-  git clone <YOUR_GITHUB_REPO_URL>
+  git clone https://github.com/anwaar-subhani/vision-guard-ai.git
 - Open cloned project root in VS Code.
 
 2) Backend setup (from project root)
