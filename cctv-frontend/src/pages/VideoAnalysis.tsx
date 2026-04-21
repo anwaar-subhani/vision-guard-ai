@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -21,7 +21,16 @@ interface PopupAlert {
   label: string
   confidence: number
   time: number
-  createdAt: number // Date.now() when shown
+}
+
+type NormalizedBBox = [number, number, number, number]
+
+interface DetectionEvent {
+  time: number
+  endTime?: number | null
+  confidence: number
+  label: string
+  bbox?: NormalizedBBox | null
 }
 
 interface VideoDetectionResponse {
@@ -39,46 +48,65 @@ interface VideoDetectionResponse {
     anomaly_id: string
     label: string
     time: number
+    end_time?: number | null
     confidence: number
+    bbox?: NormalizedBBox | null
     created_at?: string | null
     video_time?: string
   }>
 }
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const POPUP_ALERT_MS = 3000
+const MAX_POPUP_ALERTS = 5
+const BOX_WINDOW_SECONDS = 0.75
+
+const ANOMALY_OPTIONS = [
+  { id: 'gunshot_audio', name: 'Gunshot', type: 'audio', description: 'Gunshot-like sounds detected in audio stream' },
+  { id: 'fight_visual', name: 'Fight', type: 'visual', description: 'Physical altercation detected in video feed' },
+  { id: 'sudden_fall_visual', name: 'Sudden Fall', type: 'visual', description: 'Person falling suddenly in monitored area' },
+  { id: 'scream_audio', name: 'Scream', type: 'audio', description: 'Screams or distress calls in audio stream' },
+  { id: 'explosion_fire_visual', name: 'Explosion/Fire', type: 'visual', description: 'Explosion flash or fire presence in video feed' },
+  { id: 'crowd_gathering_visual', name: 'Crowd Gathering', type: 'visual', description: 'Unusual crowd formation or gathering detected' },
+] as const
 
 export default function VideoAnalysis() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const videoCardRef = useRef<HTMLDivElement | null>(null)
-  const [anomalyTypes, setAnomalyTypes] = useState([
-    { id: 'gunshot_audio', name: 'Gunshot', enabled: false, type: 'audio', description: 'Gunshot-like sounds detected in audio stream' },
-    { id: 'fight_visual', name: 'Fight', enabled: false, type: 'visual', description: 'Physical altercation detected in video feed' },
-    { id: 'sudden_fall_visual', name: 'Sudden Fall', enabled: false, type: 'visual', description: 'Person falling suddenly in monitored area' },
-    { id: 'scream_audio', name: 'Scream', enabled: false, type: 'audio', description: 'Screams or distress calls in audio stream' },
-    { id: 'explosion_fire_visual', name: 'Explosion/Fire', enabled: false, type: 'visual', description: 'Explosion flash or fire presence in video feed' },
-    { id: 'crowd_gathering_visual', name: 'Crowd Gathering', enabled: false, type: 'visual', description: 'Unusual crowd formation or gathering detected' },
-  ])
+  const [anomalyTypes, setAnomalyTypes] = useState(
+    ANOMALY_OPTIONS.map((item) => ({ ...item, enabled: false }))
+  )
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [processMessage, setProcessMessage] = useState('')
-  const [detectionResults, setDetectionResults] = useState<Record<string, { time: number; confidence: number; label: string }[]>>({})
+  const [detectionResults, setDetectionResults] = useState<Record<string, DetectionEvent[]>>({})
   const [resultErrors, setResultErrors] = useState<Record<string, string>>({})
 
   // Video player state
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [pendingSeekTime, setPendingSeekTime] = useState<number | null>(null)
+  const [playOnLoad, setPlayOnLoad] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const [serverVideoId, setServerVideoId] = useState<string | null>(searchParams.get('videoId'))
+  const [videoMode, setVideoMode] = useState<'original' | 'processed'>('original')
+  const [usingProcessedFallback, setUsingProcessedFallback] = useState(false)
 
   // Popup alerts overlaid on the video player
   const [popupAlerts, setPopupAlerts] = useState<PopupAlert[]>([])
   const shownEventKeysRef = useRef<Set<string>>(new Set())
 
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
   const selectedVideoId = searchParams.get('videoId')
   const selectedFilenameFromQuery = searchParams.get('file')
   const selectedTimeParam = searchParams.get('t')
+
+  const hasValidBBox = (bbox: unknown): bbox is NormalizedBBox => {
+    if (!Array.isArray(bbox) || bbox.length !== 4) return false
+    return bbox.every((v) => Number.isFinite(Number(v)))
+  }
 
   useEffect(() => {
     if (!selectedVideoId) return
@@ -106,14 +134,16 @@ export default function VideoAnalysis() {
         }
 
         const json = (await res.json()) as VideoDetectionResponse
-        const grouped = json.detections.reduce<Record<string, { time: number; confidence: number; label: string }[]>>(
+        const grouped = json.detections.reduce<Record<string, DetectionEvent[]>>(
           (acc, row) => {
             const key = row.anomaly_id || 'unknown'
             if (!acc[key]) acc[key] = []
             acc[key].push({
               time: Number(row.time || 0),
+              endTime: row.end_time == null ? null : Number(row.end_time),
               confidence: Number(row.confidence || 0),
               label: row.label || row.anomaly_id || 'Anomaly',
+              bbox: hasValidBBox(row.bbox) ? row.bbox : null,
             })
             return acc
           },
@@ -135,7 +165,11 @@ export default function VideoAnalysis() {
         const streamUrl = `${API_BASE}/videos/${encodeURIComponent(selectedVideoId)}/stream`
 
         setVideoUrl(streamUrl)
+        setServerVideoId(selectedVideoId)
+        setVideoMode('original')
+        setUsingProcessedFallback(false)
         setPendingSeekTime(safeStartAt)
+        setPlayOnLoad(false)
         setIsVideoPlaying(true)
 
         const filename =
@@ -159,6 +193,13 @@ export default function VideoAnalysis() {
     loadVideoDetections()
     return () => controller.abort()
   }, [API_BASE, selectedVideoId, selectedFilenameFromQuery, selectedTimeParam, location.state])
+
+  useEffect(() => {
+    if (selectedVideoId) {
+      setServerVideoId(selectedVideoId)
+      setVideoMode('original')
+    }
+  }, [selectedVideoId])
 
   // Flatten all events for real-time reveal (only show events whose time <= video currentTime)
   const allEvents = Object.entries(detectionResults).flatMap(([anomalyId, events]) =>
@@ -186,6 +227,12 @@ export default function VideoAnalysis() {
     : allEvents
   const visibleEvents = mergeEvents(rawVisible)
 
+  const activeBboxEvents = mergeEvents(
+    allEvents.filter(
+      (e) => hasValidBBox(e.bbox) && Math.abs(e.time - currentTime) <= BOX_WINDOW_SECONDS
+    )
+  ).filter((e) => hasValidBBox(e.bbox))
+
   // Clean up object URL when component unmounts or video changes
   useEffect(() => {
     return () => {
@@ -200,46 +247,59 @@ export default function VideoAnalysis() {
       const key = `${evt.anomalyId}-${evt.time}`
       if (!shownEventKeysRef.current.has(key)) {
         shownEventKeysRef.current.add(key)
-        const now = Date.now()
         const alert: PopupAlert = {
-          id: key + '-' + now,
+          id: key + '-' + Date.now(),
           label: evt.label,
           confidence: evt.confidence,
           time: evt.time,
-          createdAt: now,
         }
-        setPopupAlerts((prev) => [...prev.slice(-4), alert]) // keep at most 5
+        setPopupAlerts((prev) => [...prev.slice(-(MAX_POPUP_ALERTS - 1)), alert])
         // Auto-remove after 3 seconds
         setTimeout(() => {
           setPopupAlerts((prev) => prev.filter((a) => a.id !== alert.id))
-        }, 3000)
+        }, POPUP_ALERT_MS)
       }
     }
   }, [visibleEvents, isVideoPlaying, currentTime])
 
-  const onTimeUpdate = useCallback(() => {
+  const onTimeUpdate = () => {
     if (videoRef.current) setCurrentTime(videoRef.current.currentTime)
-  }, [])
+  }
 
-  const seekTo = useCallback((time: number) => {
+  const seekTo = (time: number) => {
     if (videoRef.current) {
       videoCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       videoRef.current.currentTime = time
-      void videoRef.current.play()
+      videoRef.current.pause()
+      setCurrentTime(time)
+      setIsVideoPlaying(false)
     }
-  }, [])
+  }
 
-  const onVideoLoadedMetadata = useCallback(() => {
+  const onVideoLoadedMetadata = () => {
     if (!videoRef.current) return
     if (pendingSeekTime === null) return
 
     const seek = Math.max(0, Math.min(pendingSeekTime, Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : pendingSeekTime))
     videoRef.current.currentTime = seek
-    void videoRef.current.play().catch(() => {
-      // Autoplay may be blocked by browser; controls remain available for manual play.
-    })
+    setCurrentTime(seek)
+
+    if (playOnLoad) {
+      videoRef.current
+        .play()
+        .then(() => setIsVideoPlaying(true))
+        .catch(() => {
+          setIsVideoPlaying(false)
+          setProcessMessage('Click play on the video controls to start playback.')
+        })
+    } else {
+      videoRef.current.pause()
+      setIsVideoPlaying(false)
+    }
+
+    setPlayOnLoad(false)
     setPendingSeekTime(null)
-  }, [pendingSeekTime])
+  }
 
   const enabledAnomalyCount = anomalyTypes.filter((anomaly) => anomaly.enabled).length
 
@@ -279,6 +339,10 @@ export default function VideoAnalysis() {
     setResultErrors({})
     setCurrentTime(0)
     setPopupAlerts([])
+    setServerVideoId(null)
+    setVideoMode('original')
+    setUsingProcessedFallback(false)
+    setPlayOnLoad(false)
     shownEventKeysRef.current.clear()
 
     // Create object URL and start playing the video immediately
@@ -337,13 +401,30 @@ export default function VideoAnalysis() {
                 const { anomalyId, time, confidence, label } = msg
                 setDetectionResults((prev) => ({
                   ...prev,
-                  [anomalyId]: [...(prev[anomalyId] || []), { time, confidence, label }],
+                  [anomalyId]: [
+                    ...(prev[anomalyId] || []),
+                    {
+                      time,
+                      endTime: msg.end_time == null ? null : Number(msg.end_time),
+                      confidence,
+                      label,
+                      bbox: hasValidBBox(msg.bbox) ? msg.bbox : null,
+                    },
+                  ],
                 }))
               } else if (msg.type === 'error') {
                 setResultErrors((prev) => ({
                   ...prev,
                   [msg.anomalyId]: msg.message,
                 }))
+              } else if (msg.type === 'video_meta') {
+                if (msg.videoId) {
+                  setServerVideoId(String(msg.videoId))
+                }
+              } else if (msg.type === 'done') {
+                if (msg.videoId) {
+                  setServerVideoId(String(msg.videoId))
+                }
               }
               // 'detector_done' and 'done' are informational
             } catch {
@@ -365,6 +446,56 @@ export default function VideoAnalysis() {
       setIsProcessing(false)
       setIsVideoPlaying(false)
     }
+  }
+
+  const handlePlayProcessedOutput = () => {
+    if (!serverVideoId) {
+      setProcessMessage('Processed output is not available yet. Please wait until processing completes.')
+      return
+    }
+
+    const originalUrl = `${API_BASE}/videos/${encodeURIComponent(serverVideoId)}/stream`
+    setVideoUrl(originalUrl)
+    setPendingSeekTime(0)
+    setPlayOnLoad(true)
+    setCurrentTime(0)
+    setVideoMode('processed')
+    setUsingProcessedFallback(true)
+    setIsVideoPlaying(true)
+    setPopupAlerts([])
+    videoCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    shownEventKeysRef.current.clear()
+    setProcessMessage('Playing full processed output mode on original video stream.')
+  }
+
+  const onVideoPlaybackError = () => {
+    if (videoMode === 'processed' && serverVideoId && !usingProcessedFallback) {
+      const fallbackUrl = `${API_BASE}/videos/${encodeURIComponent(serverVideoId)}/stream`
+      setVideoUrl(fallbackUrl)
+      setPendingSeekTime(0)
+      setPlayOnLoad(true)
+      setCurrentTime(0)
+      setUsingProcessedFallback(true)
+      setIsVideoPlaying(true)
+      setProcessMessage('Processed file could not be played in browser format. Switched to processed overlay mode on original stream.')
+      return
+    }
+
+    setIsVideoPlaying(false)
+    setProcessMessage('Unable to play this video source. Please try again.')
+  }
+
+  const formatClock = (seconds: number) => {
+    const safe = Math.max(0, Math.floor(seconds))
+    return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`
+  }
+
+  const formatDetectionTimeRange = (event: { time: number; endTime?: number | null }) => {
+    const start = formatClock(event.time)
+    if (event.endTime == null || !Number.isFinite(event.endTime) || event.endTime <= event.time) {
+      return start
+    }
+    return `${start} : ${formatClock(event.endTime)}`
   }
 
   // const recentAnalyses = [
@@ -422,37 +553,71 @@ export default function VideoAnalysis() {
                 : 'Review detected anomalies by clicking timestamps below'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="relative flex justify-center">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                controls
-                onLoadedMetadata={onVideoLoadedMetadata}
-                onTimeUpdate={onTimeUpdate}
-                onEnded={() => setIsVideoPlaying(false)}
-                className="max-w-full max-h-[70vh] rounded-lg bg-black object-contain"
-              />
+          <CardContent className="pt-4 sm:pt-5">
+            <div className="flex justify-center">
+              <div className="relative inline-block leading-none">
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  controls
+                  onLoadedMetadata={onVideoLoadedMetadata}
+                  onTimeUpdate={onTimeUpdate}
+                  onError={onVideoPlaybackError}
+                  onEnded={() => setIsVideoPlaying(false)}
+                  className="max-w-full max-h-[70vh] rounded-lg bg-black object-contain"
+                />
+
+              {/* Bounding boxes overlay from detector events (normalized coordinates). */}
+                {activeBboxEvents.length > 0 && (
+                  <div className="absolute inset-0 pointer-events-none z-[5]">
+                    {activeBboxEvents.map((evt, idx) => {
+                      if (!hasValidBBox(evt.bbox)) return null
+                      const [x1, y1, x2, y2] = evt.bbox
+                      const left = Math.max(0, Math.min(100, x1 * 100))
+                      const top = Math.max(0, Math.min(100, y1 * 100))
+                      const width = Math.max(1, Math.min(100, (x2 - x1) * 100))
+                      const height = Math.max(1, Math.min(100, (y2 - y1) * 100))
+
+                      return (
+                        <div
+                          key={`bbox-${evt.anomalyId}-${evt.time}-${idx}`}
+                          className="absolute border-2 border-red-500 shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                          }}
+                        >
+                          <div className="absolute -top-6 left-0 bg-red-600 text-white text-[10px] sm:text-xs px-1.5 py-0.5 rounded">
+                            {evt.label}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
               {/* Popup alerts overlay */}
-              {popupAlerts.length > 0 && (
-                <div className="absolute top-3 right-3 flex flex-col gap-2 z-10 pointer-events-none max-w-[280px]">
-                  {popupAlerts.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/90 text-white shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-right-5 duration-300"
-                    >
-                      <ShieldAlert className="h-4 w-4 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{alert.label} Detected</p>
-                        <p className="text-xs text-white/80">
-                          {Math.floor(alert.time / 60)}:{String(Math.floor(alert.time % 60)).padStart(2, '0')} &bull; {alert.confidence}%
-                        </p>
+                {popupAlerts.length > 0 && (
+                  <div className="absolute top-3 right-3 flex flex-col gap-2 z-10 pointer-events-none max-w-[280px]">
+                    {popupAlerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/90 text-white shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-right-5 duration-300"
+                      >
+                        <ShieldAlert className="h-4 w-4 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{alert.label} Detected</p>
+                          <p className="text-xs text-white/80">
+                            {Math.floor(alert.time / 60)}:{String(Math.floor(alert.time % 60)).padStart(2, '0')} &bull; {alert.confidence}%
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -470,7 +635,7 @@ export default function VideoAnalysis() {
               Select video files for AI analysis
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-4 sm:pt-5">
             <input
               ref={fileInputRef}
               type="file"
@@ -514,7 +679,7 @@ export default function VideoAnalysis() {
               Choose which anomalies to detect
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-4 sm:pt-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {anomalyTypes.map((anomaly) => (
                 <Button
@@ -562,17 +727,49 @@ export default function VideoAnalysis() {
 
       {/* Analysis Results */}
       <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm hover:shadow-md transition-shadow hover:border-[#4a5a6b]/50">
-        <CardHeader className="border-b border-[#4a5a6b]/10">
-          <CardTitle className="flex items-center gap-2 text-gray-800">
-            <AlertTriangle className="h-5 w-5 text-[#4a5a6b]" />
-            Detection Results
-          </CardTitle>
-          <CardDescription>
-            AI-detected anomalies in uploaded videos
-          </CardDescription>
+        <CardHeader className="border-b border-[#4a5a6b]/10 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <AlertTriangle className="h-5 w-5 text-[#4a5a6b]" />
+                Detection Results
+              </CardTitle>
+              <CardDescription>
+                AI-detected anomalies in uploaded videos
+              </CardDescription>
+            </div>
+
+            {serverVideoId && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-[#4a5a6b]/40 text-[#4a5a6b] hover:bg-[#4a5a6b] hover:text-white"
+                  onClick={handlePlayProcessedOutput}
+                  disabled={isProcessing}
+                >
+                  Play Full Processed Output
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4 sm:pt-5">
           <div className="space-y-4">
+            {isProcessing && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-[#4a5a6b]/20 bg-[#4a5a6b]/5 px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#4a5a6b] flex-shrink-0" />
+                  <p className="text-sm text-[#4a5a6b] truncate">
+                    Video is still processing. New detections will keep appearing here.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="whitespace-nowrap">
+                  Processing
+                </Badge>
+              </div>
+            )}
+
             {/* Real-time revealed results */}
             {visibleEvents.map((event, idx) => (
               <div
@@ -589,7 +786,7 @@ export default function VideoAnalysis() {
                     </Badge>
                   </div>
                   <div className="text-sm text-red-700">
-                    Time: {Math.floor(event.time / 60)}:{String(Math.floor(event.time % 60)).padStart(2, '0')} • Confidence: {event.confidence}%
+                    Time: {formatDetectionTimeRange(event)} • Confidence: {event.confidence}%
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -631,7 +828,7 @@ export default function VideoAnalysis() {
             {isProcessing && visibleEvents.length === 0 && (
               <div className="flex items-center justify-center gap-2 py-6">
                 <Loader2 className="h-4 w-4 animate-spin text-[#4a5a6b]" />
-                <p className="text-sm text-gray-500">Analyzing video… detections will appear in real time.</p>
+                <p className="text-sm text-gray-500">Analyzing video… waiting for first detection event.</p>
               </div>
             )}
           </div>

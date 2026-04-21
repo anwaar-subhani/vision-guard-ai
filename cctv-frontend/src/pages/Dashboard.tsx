@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -14,6 +14,13 @@ import {
   ArrowRight,
   ChevronRight,
 } from 'lucide-react'
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+
+const DEFAULT_STATS = {
+  accuracy: '88.9%',
+  processingTime: '4s',
+}
 
 type OverviewResponse = {
   total_videos: number
@@ -36,7 +43,6 @@ type OverviewResponse = {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
   const [overview, setOverview] = useState<OverviewResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,21 +81,7 @@ export default function Dashboard() {
     }
   }, [API_BASE])
 
-  const stats = useMemo(() => {
-    const totalVideos = overview?.total_videos ?? 0
-    const totalDetections = overview?.total_detections ?? 0
-    const modelAccuracy = '88.9%'
-    const processingTime = '4s'
-
-    return [
-      { title: 'Videos Analyzed', value: `${totalVideos}`, icon: FileVideo, color: 'text-blue-600', bg: 'bg-blue-50' },
-      { title: 'Anomalies Detected', value: `${totalDetections}`, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
-      { title: 'Accuracy', value: modelAccuracy, icon: Shield, color: 'text-green-600', bg: 'bg-green-50' },
-      { title: 'Processing time/s', value: processingTime, icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
-    ]
-  }, [overview])
-
-  const formatTimeAgo = (isoDate?: string) => {
+  const formatTimeAgo = (isoDate?: string): string => {
     if (!isoDate) return 'Unknown'
     const diffMs = Date.now() - new Date(isoDate).getTime()
     const mins = Math.floor(diffMs / 60000)
@@ -101,7 +93,38 @@ export default function Dashboard() {
     return `${days} day${days > 1 ? 's' : ''} ago`
   }
 
-  const recentAnalyses = (overview?.recent_videos || [])
+  const stats = [
+    {
+      title: 'Videos Analyzed',
+      value: String(overview?.total_videos ?? 0),
+      icon: FileVideo,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      title: 'Anomalies Detected',
+      value: String(overview?.total_detections ?? 0),
+      icon: AlertTriangle,
+      color: 'text-red-600',
+      bg: 'bg-red-50',
+    },
+    {
+      title: 'Accuracy',
+      value: DEFAULT_STATS.accuracy,
+      icon: Shield,
+      color: 'text-green-600',
+      bg: 'bg-green-50',
+    },
+    {
+      title: 'Processing time/s',
+      value: DEFAULT_STATS.processingTime,
+      icon: Activity,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+    },
+  ]
+
+  const recentAnalyses = (overview?.recent_videos ?? [])
     .filter((v) => (v.status || '').toLowerCase() !== 'failed')
     .slice(0, 3)
     .map((v) => ({
@@ -139,19 +162,19 @@ export default function Dashboard() {
   }
 
   const quickActions = [
-    { 
-      title: 'Upload Video', 
-      description: 'Upload CCTV footage for AI analysis', 
-      icon: Upload, 
-      href: '/analysis', 
-      primary: true
+    {
+      title: 'Upload Video',
+      description: 'Upload CCTV footage for AI analysis',
+      icon: Upload,
+      href: '/analysis',
+      primary: true,
     },
-    { 
-      title: 'View Analytics', 
-      description: 'Check system performance metrics', 
-      icon: BarChart3, 
-      href: '/analytics', 
-      primary: false
+    {
+      title: 'View Analytics',
+      description: 'Check system performance metrics',
+      icon: BarChart3,
+      href: '/analytics',
+      primary: false,
     },
   ]
 

@@ -1,0 +1,170 @@
+CCTV Project Setup Guide (Another Laptop, from ZIP) - Windows
+=============================================================
+
+Purpose
+-------
+Use this guide when you receive the full project folder as a ZIP and want to run it on a new laptop.
+
+What this project contains
+--------------------------
+- cctv-backend/   (FastAPI + AI detectors)
+- cctv-frontend/  (React + Vite)
+- mongo-data/     (MongoDB local data folder; optional to keep old data)
+
+
+A) Install prerequisites (one time)
+------------------------------------
+1) Python 3.10+ (recommended: 3.10 or 3.11)
+   - During install, enable "Add Python to PATH".
+
+2) Node.js 18+ (includes npm)
+
+3) MongoDB Community Server (mongod)
+   - Default install path used in this guide:
+     C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe
+
+4) (Optional) MongoDB Compass
+   - Helpful UI to view DB contents.
+
+
+B) Extract ZIP and choose a project root
+----------------------------------------
+Example project root (use your own path if different):
+C:\Users\<YOUR_USER>\Desktop\cctv
+
+After extraction, you should see:
+- cctv-backend
+- cctv-frontend
+- (optional) mongo-data
+
+Important:
+- Use ONLY one Mongo folder for this project: <project-root>\mongo-data
+- Do NOT create/use a second folder like .mongodb-data
+
+
+C) Backend setup (Python virtual environment)
+---------------------------------------------
+Open PowerShell in project root, then run:
+
+cd <project-root>\cctv-backend
+py -m venv .venv
+& .\.venv\Scripts\Activate.ps1
+
+If script execution is blocked, run once:
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+
+Install backend dependencies:
+pip install -r requirements.txt
+
+Why this matters:
+- requirements.txt pins mediapipe/protobuf versions to avoid sudden_fall_visual mismatch issues.
+
+
+D) Environment files (.env)
+---------------------------
+1) Backend env file:
+- File: <project-root>\cctv-backend\.env
+
+If missing, create with:
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB_NAME=cctv
+AUTO_DELETE_UPLOADS=false
+
+2) Frontend env file:
+- File: <project-root>\cctv-frontend\.env
+
+If missing, create with:
+VITE_API_BASE=http://localhost:8000
+
+
+E) Start MongoDB (Terminal #1)
+------------------------------
+From anywhere, run and keep this terminal open:
+
+& "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath "<project-root>\mongo-data" --bind_ip 127.0.0.1 --port 27017
+
+Notes:
+- If mongo-data folder is missing, create it:
+  New-Item -ItemType Directory -Path "<project-root>\mongo-data" -Force
+- If port 27017 is already in use, MongoDB may already be running.
+
+
+F) Start Backend API (Terminal #2)
+----------------------------------
+cd <project-root>\cctv-backend
+& .\.venv\Scripts\Activate.ps1
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+Health check URL:
+http://127.0.0.1:8000/health
+
+Expected response includes:
+- "status": "ok"
+- "mongodb": "connected"
+
+
+G) Start Frontend (Terminal #3)
+-------------------------------
+cd <project-root>\cctv-frontend
+npm install
+npm run dev
+
+Open browser:
+http://localhost:5173
+
+
+H) First run checklist
+----------------------
+- Mongo terminal is running with dbpath = <project-root>\mongo-data
+- Backend /health says mongodb connected
+- Frontend opens at localhost:5173
+- Video upload + process works from Video Analysis page
+
+
+I) If data appears missing on new laptop
+----------------------------------------
+- If ZIP included mongo-data, old local DB data should be there.
+- If ZIP did NOT include mongo-data, database starts empty (this is normal).
+- Confirm backend is connecting to localhost:27017 and DB name cctv.
+
+
+J) Troubleshooting quick fixes
+------------------------------
+1) sudden_fall_visual / mediapipe errors
+- Ensure backend .venv is activated
+- Reinstall pinned deps:
+  cd <project-root>\cctv-backend
+  & .\.venv\Scripts\Activate.ps1
+  pip install -r requirements.txt
+- Restart backend
+
+2) Frontend cannot call backend
+- Confirm backend is running on port 8000
+- Check cctv-frontend\.env has:
+  VITE_API_BASE=http://localhost:8000
+- Restart frontend dev server after changing .env
+
+3) Mongo not connected in /health
+- Ensure mongod terminal is still running
+- Confirm dbpath points to <project-root>\mongo-data
+- Confirm .env MONGODB_URI=mongodb://localhost:27017
+
+
+K) Optional: production-like frontend build check
+-------------------------------------------------
+cd <project-root>\cctv-frontend
+npm run build
+
+
+L) Optional: send without local runtime artifacts
+-------------------------------------------------
+When sharing ZIP, it is better to exclude:
+- cctv-backend\.venv
+- cctv-frontend\node_modules
+- mongo-data (unless you intentionally want to share existing DB data)
+- .mongodb-data (should not be used)
+
+
+End
+---
+If the receiver follows sections A -> G in order, the project should run on a fresh Windows laptop.

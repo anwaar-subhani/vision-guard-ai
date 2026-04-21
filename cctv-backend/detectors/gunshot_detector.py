@@ -14,14 +14,14 @@ Model file expected at: models/gunshot_trained_model.pth
 
 import os
 import subprocess
-import numpy as np
-from typing import List, Dict, Tuple
+from typing import Iterable, Iterator, List, Tuple
 
+import imageio_ffmpeg
+import librosa
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as models
-import librosa
-import imageio_ffmpeg
 
 
 # ===========================================================================
@@ -31,9 +31,9 @@ import imageio_ffmpeg
 MODEL_FILENAME       = "gunshot_trained_model.pth"   # model weights file inside models/
 SAMPLE_RATE          = 16000       # audio sample rate (Hz)
 FRAME_DURATION       = 2.0         # length of each audio frame (seconds)
-STRIDE               = 0.25       # step between frames (seconds) — lower = finer but slower
+STRIDE               = 0.1       # step between frames (seconds) — lower = finer but slower
 BATCH_SIZE           = 32          # number of frames per inference batch
-CONFIDENCE_THRESHOLD = 0.7         # minimum probability to count as a gunshot
+CONFIDENCE_THRESHOLD = 0.5         # minimum probability to count as a gunshot
 N_MELS               = 128         # mel-spectrogram frequency bins
 HOP_LENGTH           = 512         # STFT hop length
 N_FFT                = 2048        # STFT window size
@@ -116,12 +116,12 @@ def _extract_audio_ffmpeg(video_path: str, sample_rate: int = 16000) -> str:
     """Extract mono 16-bit WAV from video using the bundled ffmpeg binary."""
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
     out_wav = os.path.splitext(video_path)[0] + "_audio.wav"
-    cmd = [
+    ffmpeg_command = [
         ffmpeg_path, "-y", "-i", video_path,
         "-vn", "-ac", "1", "-ar", str(sample_rate),
         "-sample_fmt", "s16", "-f", "wav", out_wav,
     ]
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    subprocess.run(ffmpeg_command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     return out_wav
 
 
@@ -166,6 +166,86 @@ def _extract_frames(
     return frames
 
 
+def _iter_batches(items: list, batch_size: int) -> Iterable[list]:
+    """Yield fixed-size batches from a list."""
+    for start in range(0, len(items), batch_size):
+        yield items[start : start + batch_size]
+
+
+def _gunshot_event(start_t: float, end_t: float, probability: float) -> dict:
+    """Build one gunshot detection event payload."""
+    return {
+        "time": round(start_t, 2),
+        "end_time": round(end_t, 2),
+        "confidence": round(probability * 100.0, 1),
+        "label": "Gunshot",
+    }
+
+
+def _ensure_model_path(model_dir: str) -> str:
+    model_path = os.path.join(model_dir, MODEL_FILENAME)
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Gunshot model not found at {model_path}. "
+            f"Place your .pth file as {MODEL_FILENAME} inside the models/ directory."
+        )
+    return model_path
+
+
+def stream_inference(
+    video_path: str,
+    model_dir: str,
+    *,
+    step_dur: float | None = None,
+    batch_size: int | None = None,
+) -> Iterator[dict]:
+    """Yield per-audio-window inference results in timeline order.
+
+    Each yielded dict includes:
+        {
+            "time": <window_start_seconds>,
+            "end_time": <window_end_seconds>,
+            "confidence": <0-100>,
+            "label": "Gunshot",
+            "is_detection": <bool>,
+            "prediction_label": <"Gunshot"|"No Gunshot">
+        }
+    """
+    model_path = _ensure_model_path(model_dir)
+    effective_step = float(step_dur) if step_dur is not None else STRIDE
+    effective_step = max(0.05, effective_step)
+    effective_batch_size = int(batch_size) if batch_size is not None else BATCH_SIZE
+    effective_batch_size = max(1, effective_batch_size)
+
+    wav_path = _extract_audio_ffmpeg(video_path, SAMPLE_RATE)
+    try:
+        audio, sr = librosa.load(wav_path, sr=SAMPLE_RATE, mono=True)
+        frames = _extract_frames(audio, sr, step_dur=effective_step)
+        model, device = _get_model(model_path)
+
+        for batch_frames in _iter_batches(frames, effective_batch_size):
+            tensors = [_preprocess_frame(chunk, sr) for (_, _, chunk) in batch_frames]
+            batch_tensor = torch.stack(tensors, dim=0).to(device)
+
+            with torch.no_grad():
+                logits = model(batch_tensor)
+                probs = torch.softmax(logits, dim=1)
+                gunshot_probs = probs[:, 1].cpu().numpy()
+
+            for i, (start_t, end_t, _) in enumerate(batch_frames):
+                prob = float(gunshot_probs[i])
+                event = _gunshot_event(start_t, end_t, prob)
+                is_detection = prob > CONFIDENCE_THRESHOLD
+                event["is_detection"] = is_detection
+                event["prediction_label"] = "Gunshot" if is_detection else "No Gunshot"
+                yield event
+    finally:
+        try:
+            os.remove(wav_path)
+        except OSError:
+            pass
+
+
 # ---------------------------------------------------------------------------
 # Singleton cache so the model is loaded once across requests
 # ---------------------------------------------------------------------------
@@ -198,50 +278,11 @@ def detect(video_path: str, model_dir: str):
     Yields:
         dict: {"time": <s>, "confidence": <0-100>, "label": "Gunshot"}
     """
-    model_path = os.path.join(model_dir, MODEL_FILENAME)
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(
-            f"Gunshot model not found at {model_path}. "
-            f"Place your .pth file as {MODEL_FILENAME} inside the models/ directory."
-        )
-
-    # 1. Extract audio from video
-    wav_path = _extract_audio_ffmpeg(video_path, SAMPLE_RATE)
-
-    try:
-        # 2. Load audio
-        audio, sr = librosa.load(wav_path, sr=SAMPLE_RATE, mono=True)
-
-        # 3. Split into frames
-        frames = _extract_frames(audio, sr)
-
-        # 4. Load model (cached across requests)
-        model, device = _get_model(model_path)
-
-        # 5. Batched inference – yield events per batch for real-time streaming
-        num_frames = len(frames)
-
-        for batch_start in range(0, num_frames, BATCH_SIZE):
-            batch_frames = frames[batch_start : batch_start + BATCH_SIZE]
-            tensors = [_preprocess_frame(chunk, sr) for (_, _, chunk) in batch_frames]
-            batch_tensor = torch.stack(tensors, dim=0).to(device)  # (B, 3, 224, 224)
-
-            with torch.no_grad():
-                logits = model(batch_tensor)
-                probs = torch.softmax(logits, dim=1)
-                gunshot_probs = probs[:, 1].cpu().numpy()
-
-            for i, (start_t, end_t, _) in enumerate(batch_frames):
-                prob = float(gunshot_probs[i])
-                if prob > CONFIDENCE_THRESHOLD:
-                    yield {
-                        "time": round(start_t, 2),
-                        "confidence": round(prob * 100.0, 1),
-                        "label": "Gunshot",
-                    }
-    finally:
-        # Clean up temporary wav even if generator is abandoned
-        try:
-            os.remove(wav_path)
-        except OSError:
-            pass
+    for event in stream_inference(video_path, model_dir):
+        if event.get("is_detection"):
+            yield {
+                "time": event["time"],
+                "end_time": event["end_time"],
+                "confidence": event["confidence"],
+                "label": event["label"],
+            }

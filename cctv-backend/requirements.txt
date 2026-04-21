@@ -10,7 +10,10 @@ librosa
 imageio-ffmpeg
 opencv-python
 Pillow
-mediapipe
-protobuf>=3.20.3,<4
+ultralytics
+mediapipe==0.10.14
+protobuf==4.25.8
 pymongo
 python-dotenv
+tensorflow-cpu>=2.16,<2.18
+tensorflow-hub>=0.16.1

@@ -1,4 +1,4 @@
-import React, { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -13,7 +13,6 @@ import {
   X
 } from 'lucide-react'
 import { Button } from './ui/button'
-import { cn } from '../lib/utils'
 
 interface LayoutProps {
   children: ReactNode
@@ -30,13 +29,13 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Close mobile menu on route change
-  React.useEffect(() => {
+  // Close mobile menu after route changes.
+  useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname])
 
-  // Close mobile menu on escape key
-  React.useEffect(() => {
+  // Close mobile menu when user presses Escape.
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMobileMenuOpen(false)
@@ -45,6 +44,11 @@ export default function Layout({ children }: LayoutProps) {
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
+
+  const sidebarClassName =
+    `fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+    }`
 
   return (
     <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
@@ -100,24 +104,20 @@ export default function Layout({ children }: LayoutProps) {
         )}
 
         {/* Sidebar */}
-        <nav className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0",
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
+        <nav className={sidebarClassName}>
           <div className="p-4">
             <ul className="space-y-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.href
+                const linkClassName = isActive
+                  ? 'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-white'
+                  : 'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100'
+
                 return (
                   <li key={item.name}>
                     <Link
                       to={item.href}
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                        isActive
-                          ? "text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      )}
+                      className={linkClassName}
                       style={isActive ? { backgroundColor: '#4a5a6b' } : {}}
                       onClick={() => setMobileMenuOpen(false)}
                     >

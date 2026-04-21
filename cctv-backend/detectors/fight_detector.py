@@ -12,7 +12,8 @@ from __future__ import annotations
 import os
 import math
 import importlib
-from typing import Dict, List, Tuple
+from collections import deque
+from typing import Iterator, List, Tuple
 
 import cv2
 import torch
@@ -29,6 +30,8 @@ CONF_THRESHOLD = 0.50
 STRIDE_DIVISOR = 3          # stride = NUM_FRAMES // STRIDE_DIVISOR
 WINDOW_BATCH_SIZE = 4       # number of clips per model forward pass
 MIN_EVENT_GAP_SEC = 1.0     # suppress near-duplicate events from overlap
+PROB_SMOOTH_RADIUS = 1      # local temporal smoothing over sliding windows
+TARGET_INFER_FPS = 8.0      # cap effective model window-rate on very high FPS videos
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +44,174 @@ _cached_model_path: str | None = None
 _cached_device = None
 _cached_num_frames: int | None = None
 _cached_frame_size: int | None = None
+
+
+def _should_emit_event(confidence: float, start_frame: int, last_emit_frame: int, gap_frames: int) -> bool:
+    """Return True when confidence is high enough and cooldown window has passed."""
+    if confidence < CONF_THRESHOLD:
+        return False
+    if (start_frame - last_emit_frame) < gap_frames:
+        return False
+    return True
+
+
+def _build_fight_event(start_frame: int, fps: float, confidence: float, bbox: List[float] | None) -> dict:
+    """Build one fight event payload."""
+    return {
+        "time": round(start_frame / fps, 2),
+        "confidence": round(confidence * 100.0, 1),
+        "label": "Fight",
+        "bbox": bbox,
+    }
+
+
+def _compute_motion_bbox(
+    gray_frames: List[np.ndarray],
+    start: int,
+    end: int,
+    min_area_ratio: float = 0.01,
+) -> List[float] | None:
+    """Estimate fight region using inter-frame motion and return normalized bbox.
+
+    Returns [x1, y1, x2, y2] normalized to [0,1], or None if no stable motion.
+    """
+    if not gray_frames:
+        return None
+
+    start = max(0, min(start, len(gray_frames) - 1))
+    end = max(start + 1, min(end, len(gray_frames)))
+    if (end - start) < 2:
+        return None
+
+    h, w = gray_frames[start].shape[:2]
+    motion = np.zeros((h, w), dtype=np.uint8)
+
+    for idx in range(start + 1, end):
+        prev_f = gray_frames[idx - 1]
+        cur_f = gray_frames[idx]
+        diff = cv2.absdiff(cur_f, prev_f)
+        _, th = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
+        th = cv2.medianBlur(th, 5)
+        motion = cv2.bitwise_or(motion, th)
+
+    kernel = np.ones((5, 5), np.uint8)
+    motion = cv2.morphologyEx(motion, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(motion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+
+    min_area = max(1.0, float(w * h) * float(min_area_ratio))
+    valid = [c for c in contours if cv2.contourArea(c) >= min_area]
+    if not valid:
+        # fallback: use the largest contour so we still localize motion region
+        valid = [max(contours, key=cv2.contourArea)]
+
+    x1, y1, x2, y2 = w, h, 0, 0
+    for c in valid:
+        x, y, cw, ch = cv2.boundingRect(c)
+        x1 = min(x1, x)
+        y1 = min(y1, y)
+        x2 = max(x2, x + cw)
+        y2 = max(y2, y + ch)
+
+    # Expand slightly so the highlighted region is not too tight
+    pad_x = int(0.05 * max(1, (x2 - x1)))
+    pad_y = int(0.05 * max(1, (y2 - y1)))
+    x1 -= pad_x
+    y1 -= pad_y
+    x2 += pad_x
+    y2 += pad_y
+
+    # Clamp and normalize
+    x1 = max(0, min(w - 1, x1))
+    y1 = max(0, min(h - 1, y1))
+    x2 = max(x1 + 1, min(w, x2))
+    y2 = max(y1 + 1, min(h, y2))
+
+    return [
+        round(float(x1) / float(w), 4),
+        round(float(y1) / float(h), 4),
+        round(float(x2) / float(w), 4),
+        round(float(y2) / float(h), 4),
+    ]
+
+
+def _compute_motion_bbox_clip(
+    gray_clip: List[np.ndarray],
+    min_area_ratio: float = 0.003,
+    max_single_contour_ratio: float = 0.70,
+) -> List[float] | None:
+    """Estimate motion bbox from one temporal clip (original frame geometry).
+
+    Uses robust contour filtering so camera noise/full-frame flicker is less likely
+    to produce giant inaccurate boxes.
+    """
+    if not gray_clip or len(gray_clip) < 2:
+        return None
+
+    h, w = gray_clip[0].shape[:2]
+    motion = np.zeros((h, w), dtype=np.uint8)
+
+    for i in range(1, len(gray_clip)):
+        prev_f = gray_clip[i - 1]
+        cur_f = gray_clip[i]
+        diff = cv2.absdiff(cur_f, prev_f)
+        _, th = cv2.threshold(diff, 20, 255, cv2.THRESH_BINARY)
+        th = cv2.GaussianBlur(th, (5, 5), 0)
+        _, th = cv2.threshold(th, 20, 255, cv2.THRESH_BINARY)
+        motion = cv2.bitwise_or(motion, th)
+
+    kernel = np.ones((5, 5), np.uint8)
+    motion = cv2.morphologyEx(motion, cv2.MORPH_OPEN, kernel, iterations=1)
+    motion = cv2.morphologyEx(motion, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(motion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+
+    frame_area = float(w * h)
+    min_area = max(1.0, frame_area * float(min_area_ratio))
+    filtered = [c for c in contours if cv2.contourArea(c) >= min_area]
+    if not filtered:
+        filtered = [max(contours, key=cv2.contourArea)]
+
+    # Remove huge camera-motion blobs when possible.
+    non_huge = [
+        c for c in filtered
+        if (cv2.contourArea(c) / frame_area) <= float(max_single_contour_ratio)
+    ]
+    if non_huge:
+        filtered = non_huge
+
+    # Keep only top-k blobs to avoid over-expanding bbox from scattered noise.
+    filtered = sorted(filtered, key=cv2.contourArea, reverse=True)[:3]
+
+    x1, y1, x2, y2 = w, h, 0, 0
+    for c in filtered:
+        x, y, cw, ch = cv2.boundingRect(c)
+        x1 = min(x1, x)
+        y1 = min(y1, y)
+        x2 = max(x2, x + cw)
+        y2 = max(y2, y + ch)
+
+    # Slight padding for visibility.
+    pad_x = int(0.04 * max(1, (x2 - x1)))
+    pad_y = int(0.04 * max(1, (y2 - y1)))
+    x1 = max(0, x1 - pad_x)
+    y1 = max(0, y1 - pad_y)
+    x2 = min(w, x2 + pad_x)
+    y2 = min(h, y2 + pad_y)
+
+    if x2 <= x1 or y2 <= y1:
+        return None
+
+    return [
+        round(float(x1) / float(w), 4),
+        round(float(y1) / float(h), 4),
+        round(float(x2) / float(w), 4),
+        round(float(y2) / float(h), 4),
+    ]
 
 
 def _sliding_window_indices(total_frames: int, window_size: int, stride: int) -> List[Tuple[int, int]]:
@@ -59,6 +230,22 @@ def _sliding_window_indices(total_frames: int, window_size: int, stride: int) ->
         indices.append((total_frames - window_size, total_frames))
 
     return indices
+
+
+def _smooth_window_probs(raw_probs: List[float], radius: int = 1) -> List[float]:
+    """Apply light local max smoothing to improve recall on short fight bursts."""
+    if not raw_probs:
+        return []
+    if radius <= 0:
+        return list(raw_probs)
+
+    n = len(raw_probs)
+    smoothed: List[float] = []
+    for i in range(n):
+        left = max(0, i - radius)
+        right = min(n, i + radius + 1)
+        smoothed.append(float(max(raw_probs[left:right])))
+    return smoothed
 
 
 def _preprocess_clip(frames_rgb: List[np.ndarray], transform, device, num_frames: int) -> torch.Tensor:
@@ -148,12 +335,13 @@ def _load_fight_bundle(model_path: str):
     return model, transform, device, num_frames, frame_size
 
 
-def detect(video_path: str, model_dir: str):
-    """Yield fight events in real time for SSE streaming.
-
-    Yields event dicts:
-        {"time": <seconds>, "confidence": <0-100>, "label": "Fight"}
-    """
+def stream_inference(
+    video_path: str,
+    model_dir: str,
+    *,
+    target_infer_fps: float | None = None,
+) -> Iterator[dict]:
+    """Yield per-window fight predictions in timeline order for realtime UI."""
     model_path = os.path.join(model_dir, MODEL_FILENAME)
     if not os.path.exists(model_path):
         raise FileNotFoundError(
@@ -169,52 +357,111 @@ def detect(video_path: str, model_dir: str):
 
     try:
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        frames_rgb: List[np.ndarray] = []
+        base_stride = max(1, int(num_frames // STRIDE_DIVISOR))
+        infer_fps = float(target_infer_fps) if target_infer_fps is not None else TARGET_INFER_FPS
+        infer_fps = max(1.0, infer_fps)
+        fps_stride = max(1, int(round(float(fps) / infer_fps)))
+        stride = max(base_stride, fps_stride)
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            resized = cv2.resize(rgb, (frame_size, frame_size))
-            frames_rgb.append(resized)
+        clip_rgb: deque[np.ndarray] = deque(maxlen=num_frames)
+        clip_gray: deque[np.ndarray] = deque(maxlen=num_frames)
+        recent_probs: deque[float] = deque(maxlen=max(1, PROB_SMOOTH_RADIUS + 1))
 
-        if not frames_rgb:
-            return
+        pending_inputs: List[torch.Tensor] = []
+        pending_meta: List[Tuple[int, List[np.ndarray]]] = []
 
-        stride = max(1, int(num_frames // STRIDE_DIVISOR))
-        windows = _sliding_window_indices(len(frames_rgb), num_frames, stride)
-        gap_frames = max(1, int(math.ceil(MIN_EVENT_GAP_SEC * fps)))
-        last_emit_frame = -10_000_000
+        def flush_pending_predictions():
+            if not pending_inputs:
+                return []
+
+            inputs = torch.cat(pending_inputs, dim=0)
+            outputs = model(inputs)
+            batch_probs = torch.softmax(outputs, dim=1)[:, 1].detach().cpu().numpy().tolist()
+
+            emitted = []
+            for i, prob in enumerate(batch_probs):
+                start_frame, gray_clip_for_window = pending_meta[i]
+                recent_probs.append(float(prob))
+                conf = max(recent_probs)
+                bbox = _compute_motion_bbox_clip(gray_clip_for_window)
+
+                emitted.append(
+                    {
+                        "time": round(start_frame / fps, 2),
+                        "end_time": round((start_frame + stride) / fps, 2),
+                        "confidence": round(conf * 100.0, 1),
+                        "label": "Fight" if conf >= CONF_THRESHOLD else "No Fight",
+                        "prediction_label": "Fight" if conf >= CONF_THRESHOLD else "No Fight",
+                        "is_detection": conf >= CONF_THRESHOLD,
+                        "bbox": bbox,
+                    }
+                )
+
+            pending_inputs.clear()
+            pending_meta.clear()
+            return emitted
+
+        frame_idx = -1
+        windows_seen = 0
 
         with torch.no_grad():
-            for batch_start in range(0, len(windows), WINDOW_BATCH_SIZE):
-                batch_windows = windows[batch_start: batch_start + WINDOW_BATCH_SIZE]
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-                clips = []
-                for start, end in batch_windows:
-                    clip_frames = frames_rgb[start:end]
-                    clips.append(_preprocess_clip(clip_frames, transform, device, num_frames))
+                frame_idx += 1
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                resized = cv2.resize(rgb, (frame_size, frame_size))
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                # (B, C, T, H, W)
-                inputs = torch.cat(clips, dim=0)
-                outputs = model(inputs)
-                probs = torch.softmax(outputs, dim=1)[:, 1].detach().cpu().numpy()
+                clip_rgb.append(resized)
+                clip_gray.append(gray)
 
-                for i, (start, end) in enumerate(batch_windows):
-                    conf = float(probs[i])
-                    if conf < CONF_THRESHOLD:
-                        continue
+                if len(clip_rgb) < num_frames:
+                    continue
 
-                    # debounce overlapping positive windows
-                    if (start - last_emit_frame) < gap_frames:
-                        continue
+                if windows_seen > 0 and (frame_idx % stride) != 0:
+                    continue
 
-                    last_emit_frame = start
-                    yield {
-                        "time": round(start / fps, 2),
-                        "confidence": round(conf * 100.0, 1),
-                        "label": "Fight",
-                    }
+                windows_seen += 1
+                start_frame = frame_idx - num_frames + 1
+
+                input_t = _preprocess_clip(list(clip_rgb), transform, device, num_frames)
+                pending_inputs.append(input_t)
+                pending_meta.append((start_frame, list(clip_gray)))
+
+                if len(pending_inputs) >= WINDOW_BATCH_SIZE:
+                    for prediction in flush_pending_predictions():
+                        yield prediction
+
+            for prediction in flush_pending_predictions():
+                yield prediction
     finally:
         cap.release()
+
+
+def detect(video_path: str, model_dir: str):
+    """Yield fight events in real time for SSE streaming.
+
+    Yields event dicts:
+        {"time": <seconds>, "confidence": <0-100>, "label": "Fight"}
+    """
+    last_emit_time = -1e9
+
+    for frame_result in stream_inference(video_path, model_dir):
+        if not frame_result.get("is_detection"):
+            continue
+
+        t_sec = float(frame_result.get("time", 0.0) or 0.0)
+        if (t_sec - last_emit_time) < MIN_EVENT_GAP_SEC:
+            continue
+
+        last_emit_time = t_sec
+        yield {
+            "time": frame_result.get("time", 0.0),
+            "end_time": frame_result.get("end_time"),
+            "confidence": frame_result.get("confidence", 0.0),
+            "label": "Fight",
+            "bbox": frame_result.get("bbox"),
+        }

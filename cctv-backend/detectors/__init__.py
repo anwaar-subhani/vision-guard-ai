@@ -10,18 +10,23 @@ and returns a list of event dicts like:
     {"time": 1.23, "confidence": 91.5, "label": "Gunshot"}
 """
 
+from typing import Callable, Iterator
+
 from detectors.gunshot_detector import detect as detect_gunshot
 from detectors.fight_detector import detect as detect_fight
 from detectors.fall_detector import detect as detect_fall
 from detectors.scream_detector import detect as detect_scream
-from detectors.explosion_detector import detect as detect_explosion
+from detectors.fire_detector import detect as detect_fire
 from detectors.crowd_detector import detect as detect_crowd
 
-DETECTOR_REGISTRY: dict[str, callable] = {
+DetectorFn = Callable[[str, str], Iterator[dict]]
+
+
+DETECTOR_REGISTRY: dict[str, DetectorFn] = {
     "gunshot_audio": detect_gunshot,
     "fight_visual": detect_fight,
     "sudden_fall_visual": detect_fall,
     "scream_audio": detect_scream,
-    "explosion_fire_visual": detect_explosion,
+    "explosion_fire_visual": detect_fire,
     "crowd_gathering_visual": detect_crowd,
 }

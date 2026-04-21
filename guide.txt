@@ -29,16 +29,28 @@ If PowerShell blocks script execution, run once (as needed):
 
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
+Install backend dependencies once (or after requirements changes):
+
+cd c:\Users\anwaa\Desktop\cctv\cctv-backend
+pip install -r requirements.txt
+
+Important for stable runs:
+- Keep using this same .venv for backend.
+- requirements.txt now pins mediapipe/protobuf versions to avoid sudden_fall_visual breakage.
+
 --------------------------------------------------
 3) Start MongoDB
 --------------------------------------------------
 If MongoDB service is not running, start mongod manually and keep it open:
 
-"C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath "c:\Users\anwaa\Desktop\cctv\mongo-data" --bind_ip 127.0.0.1 --port 27017
-
+& "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath "c:\Users\anwaa\Desktop\cctv\mongo-data" --bind_ip 127.0.0.1 --port 27017
 Notes:
 - If port 27017 is already in use, MongoDB may already be running.
 - If command exits immediately, check terminal output for permission/path issues.
+- Canonical dbpath for this project is ONLY: c:\Users\anwaa\Desktop\cctv\mongo-data
+- If you see another folder like .mongodb-data, do not use it for this project.
+- One-time cleanup (only when Mongo is stopped):
+  Remove-Item -Recurse -Force "c:\Users\anwaa\Desktop\cctv\.mongodb-data"
 
 --------------------------------------------------
 4) Run Backend (FastAPI)
@@ -134,6 +146,8 @@ git push -u origin main
 --------------------------------------------------
 A) sudden_fall_visual protobuf/mediapipe issue:
 - Use consistent runtime environment for backend.
+- Reinstall pinned backend deps in cctv-backend:
+  pip install -r requirements.txt
 - Restart backend after dependency changes.
 
 B) Alerts/Dashboard empty:

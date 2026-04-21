@@ -24,12 +24,17 @@ from torchvision.models.video import r2plus1d_18
 NUM_FRAMES = 16
 FRAME_SIZE = 112
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-    DEVICE = torch.device("mps")
-else:
-    DEVICE = torch.device("cpu")
+
+def _pick_device() -> torch.device:
+    """Choose the fastest available torch device on this machine."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+DEVICE = _pick_device()
 
 # Kinetics-400 normalization (commonly used for torchvision video models)
 KINETICS_MEAN = [0.43216, 0.394666, 0.37645]

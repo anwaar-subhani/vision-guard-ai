@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -12,61 +13,278 @@ import {
   AlertTriangle,
   Activity,
   Wifi,
-  WifiOff
+  WifiOff,
+  Upload,
+  Loader2,
+  ShieldAlert,
 } from 'lucide-react'
 
-export default function LiveMonitoring() {
-  const cameraFeeds = [
-    { 
-      id: 1, 
-      name: 'Main Entrance', 
-      location: 'Building A - Floor 1',
-      status: 'online',
-      resolution: '1920x1080',
-      fps: 30,
-      audio: true,
-      lastMotion: '2 minutes ago',
-      anomalies: 0
-    },
-    { 
-      id: 2, 
-      name: 'Parking Lot', 
-      location: 'Building B - Ground Floor',
-      status: 'online',
-      resolution: '1920x1080',
-      fps: 30,
-      audio: true,
-      lastMotion: '5 minutes ago',
-      anomalies: 1
-    },
-    { 
-      id: 3, 
-      name: 'Lobby', 
-      location: 'Building A - Ground Floor',
-      status: 'offline',
-      resolution: '1280x720',
-      fps: 25,
-      audio: false,
-      lastMotion: 'Never',
-      anomalies: 0
-    },
-    { 
-      id: 4, 
-      name: 'Emergency Exit', 
-      location: 'Building C - Floor 2',
-      status: 'online',
-      resolution: '1920x1080',
-      fps: 30,
-      audio: true,
-      lastMotion: '1 minute ago',
-      anomalies: 0
-    },
-  ]
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
-  const liveAlerts = [
-    { id: 1, camera: 'Parking Lot', type: 'Suspicious Activity', time: '2 minutes ago', severity: 'high' },
-    { id: 2, camera: 'Main Entrance', type: 'Crowd Gathering', time: '5 minutes ago', severity: 'medium' },
-  ]
+type RealtimeMode = 'gunshot' | 'fire' | 'fall' | 'fight' | 'crowd' | 'scream'
+
+const REALTIME_MODE_META: Record<
+  RealtimeMode,
+  { label: string; endpoint: string; defaultPrediction: string; defaultEvent: string }
+> = {
+  gunshot: {
+    label: 'Gunshot',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'No Gunshot',
+    defaultEvent: 'Gunshot',
+  },
+  fire: {
+    label: 'Fire/Explosion',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'No Fire',
+    defaultEvent: 'Explosion/Fire',
+  },
+  fall: {
+    label: 'Sudden Fall',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'Normal Posture',
+    defaultEvent: 'Sudden Fall',
+  },
+  fight: {
+    label: 'Fight',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'No Fight',
+    defaultEvent: 'Fight',
+  },
+  crowd: {
+    label: 'Crowd (Coming Soon)',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'No Crowd',
+    defaultEvent: 'Crowd Gathering',
+  },
+  scream: {
+    label: 'Scream',
+    endpoint: '/process-video-realtime',
+    defaultPrediction: 'No Scream',
+    defaultEvent: 'Scream',
+  },
+}
+
+const cameraFeeds = [
+  {
+    id: 1,
+    name: 'Main Entrance',
+    location: 'Building A - Floor 1',
+    status: 'online',
+    resolution: '1920x1080',
+    fps: 30,
+    audio: true,
+    lastMotion: '2 minutes ago',
+    anomalies: 0,
+  },
+  {
+    id: 2,
+    name: 'Parking Lot',
+    location: 'Building B - Ground Floor',
+    status: 'online',
+    resolution: '1920x1080',
+    fps: 30,
+    audio: true,
+    lastMotion: '5 minutes ago',
+    anomalies: 1,
+  },
+  {
+    id: 3,
+    name: 'Lobby',
+    location: 'Building A - Ground Floor',
+    status: 'offline',
+    resolution: '1280x720',
+    fps: 25,
+    audio: false,
+    lastMotion: 'Never',
+    anomalies: 0,
+  },
+  {
+    id: 4,
+    name: 'Emergency Exit',
+    location: 'Building C - Floor 2',
+    status: 'online',
+    resolution: '1920x1080',
+    fps: 30,
+    audio: true,
+    lastMotion: '1 minute ago',
+    anomalies: 0,
+  },
+]
+
+const liveAlerts = [
+  { id: 1, camera: 'Parking Lot', type: 'Suspicious Activity', time: '2 minutes ago', severity: 'high' },
+  { id: 2, camera: 'Main Entrance', type: 'Crowd Gathering', time: '5 minutes ago', severity: 'medium' },
+]
+
+export default function LiveMonitoring() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+
+  const [uploadedVideo, setUploadedVideo] = useState<File | null>(null)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [isRunningRealtime, setIsRunningRealtime] = useState(false)
+  const [realtimeMode, setRealtimeMode] = useState<RealtimeMode>('gunshot')
+  const [monitorMessage, setMonitorMessage] = useState('Upload a video and start realtime monitoring.')
+  const [latestTickTime, setLatestTickTime] = useState<number | null>(null)
+  const [latestTickConfidence, setLatestTickConfidence] = useState<number | null>(null)
+  const [realtimeEvents, setRealtimeEvents] = useState<Array<{ id: string; time: number; confidence: number; label: string }>>([])
+  const [realtimePredictions, setRealtimePredictions] = useState<
+    Array<{ id: string; time: number; confidence: number; label: string; isDetection: boolean }>
+  >([])
+
+  useEffect(() => {
+    return () => {
+      if (videoUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(videoUrl)
+      }
+    }
+  }, [videoUrl])
+
+  const formatClock = (seconds: number) => {
+    const safe = Math.max(0, Math.floor(seconds))
+    return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`
+  }
+
+  const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] ?? null
+    setUploadedVideo(selectedFile)
+    setRealtimeEvents([])
+    setRealtimePredictions([])
+    setLatestTickTime(null)
+    setLatestTickConfidence(null)
+
+    if (!selectedFile) {
+      setMonitorMessage('Upload a video and start realtime monitoring.')
+      return
+    }
+
+    if (videoUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(videoUrl)
+    }
+
+    const localUrl = URL.createObjectURL(selectedFile)
+    setVideoUrl(localUrl)
+    setMonitorMessage(`Ready: ${selectedFile.name}`)
+  }
+
+  const handleStartRealtimeDetection = async () => {
+    if (!uploadedVideo) {
+      setMonitorMessage('Please upload a video first.')
+      return
+    }
+
+    const modeMeta = REALTIME_MODE_META[realtimeMode]
+    const modeLabel = modeMeta.label
+    const endpoint = modeMeta.endpoint
+
+    if (realtimeMode === 'crowd') {
+      setMonitorMessage(`${modeMeta.label} realtime mode will be enabled when backend model stream is added.`)
+      return
+    }
+
+    setIsRunningRealtime(true)
+    setRealtimeEvents([])
+    setRealtimePredictions([])
+    setLatestTickTime(0)
+    setLatestTickConfidence(0)
+    setMonitorMessage(`Realtime ${modeLabel} monitoring started. Playing video and streaming live predictions...`)
+
+    if (videoRef.current) {
+      videoRef.current.pause()
+      try {
+        videoRef.current.currentTime = 0
+      } catch {
+        // ignore seek errors on not-ready media
+      }
+    }
+
+    setTimeout(() => {
+      videoRef.current?.play().catch(() => {
+        setMonitorMessage('Video is loaded. Press play on video controls if browser blocked autoplay.')
+      })
+    }, 80)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadedVideo)
+      formData.append('mode', realtimeMode)
+
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail ?? 'Realtime processing failed')
+      }
+
+      const reader = res.body?.getReader()
+      if (!reader) {
+        throw new Error('No SSE response body received from backend.')
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const parts = buffer.split('\n\n')
+        buffer = parts.pop() || ''
+
+        for (const part of parts) {
+          for (const line of part.split('\n')) {
+            if (!line.startsWith('data: ')) continue
+
+            const jsonStr = line.slice(6).trim()
+            if (!jsonStr) continue
+
+            try {
+              const msg = JSON.parse(jsonStr)
+
+              if (msg.type === 'tick') {
+                setLatestTickTime(Number(msg.time || 0))
+                setLatestTickConfidence(Number(msg.confidence || 0))
+              } else if (msg.type === 'prediction') {
+                const prediction = {
+                  id: `${msg.time}-${Date.now()}-${Math.random()}`,
+                  time: Number(msg.time || 0),
+                  confidence: Number(msg.confidence || 0),
+                  label: String(msg.label || modeMeta.defaultPrediction),
+                  isDetection: Boolean(msg.is_detection),
+                }
+                setRealtimePredictions((prev) => [prediction, ...prev].slice(0, 20))
+              } else if (msg.type === 'event') {
+                const event = {
+                  id: `${msg.time}-${Date.now()}-${Math.random()}`,
+                  time: Number(msg.time || 0),
+                  confidence: Number(msg.confidence || 0),
+                  label: String(msg.label || modeMeta.defaultEvent),
+                }
+                setRealtimeEvents((prev) => [event, ...prev].slice(0, 12))
+              } else if (msg.type === 'error') {
+                setMonitorMessage(`Error: ${String(msg.message || 'Unknown realtime error')}`)
+              } else if (msg.type === 'done') {
+                setMonitorMessage(`Realtime ${modeLabel} monitoring finished.`)
+              }
+            } catch {
+              // ignore malformed line
+            }
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown realtime error'
+      setMonitorMessage(`Error: ${message}`)
+    } finally {
+      setIsRunningRealtime(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -77,6 +295,155 @@ export default function LiveMonitoring() {
         </p>
         <div className="mt-3 h-1 w-16 bg-[#4a5a6b] rounded-full"></div>
       </div>
+
+      <Card className="bg-white border border-[#4a5a6b]/30 shadow-sm">
+        <CardHeader className="bg-blue-50 border-b border-blue-200">
+          <CardTitle className="flex items-center gap-2 text-blue-700 text-lg">
+            <ShieldAlert className="h-5 w-5 text-[#4a5a6b]" />
+            Realtime CCTV Monitoring (All Models)
+          </CardTitle>
+          <CardDescription className="text-blue-600">
+            Upload a video, choose mode, and watch playback with live AI predictions in realtime.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/mp4,video/x-msvideo,video/quicktime,.mp4,.avi,.mov"
+            className="hidden"
+            onChange={handleVideoSelect}
+          />
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant={realtimeMode === 'gunshot' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('gunshot')}
+              disabled={isRunningRealtime}
+            >
+              Gunshot Mode
+            </Button>
+            <Button
+              variant={realtimeMode === 'fire' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('fire')}
+              disabled={isRunningRealtime}
+            >
+              Fire Mode
+            </Button>
+            <Button
+              variant={realtimeMode === 'fall' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('fall')}
+              disabled={isRunningRealtime}
+            >
+              Fall Mode
+            </Button>
+            <Button
+              variant={realtimeMode === 'fight' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('fight')}
+              disabled={isRunningRealtime}
+            >
+              Fight Mode
+            </Button>
+            <Button
+              variant={realtimeMode === 'crowd' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('crowd')}
+              disabled={isRunningRealtime}
+            >
+              Crowd (Soon)
+            </Button>
+            <Button
+              variant={realtimeMode === 'scream' ? 'default' : 'outline'}
+              onClick={() => setRealtimeMode('scream')}
+              disabled={isRunningRealtime}
+            >
+              Scream Mode
+            </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isRunningRealtime}>
+              <Upload className="h-4 w-4 mr-2" />
+              Choose Video
+            </Button>
+            <Button onClick={handleStartRealtimeDetection} disabled={!uploadedVideo || isRunningRealtime}>
+              {isRunningRealtime ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Monitoring...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Realtime {REALTIME_MODE_META[realtimeMode].label}
+                </>
+              )}
+            </Button>
+          </div>
+
+          {uploadedVideo && (
+            <p className="text-sm text-[#4a5a6b]" title={uploadedVideo.name}>
+              Selected: {uploadedVideo.name}
+            </p>
+          )}
+
+          <p className="text-sm text-gray-600">{monitorMessage}</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg border bg-gray-50">
+              <div className="text-xs text-gray-500">Latest Tick Time</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {latestTickTime == null ? '--:--' : formatClock(latestTickTime)}
+              </div>
+            </div>
+            <div className="p-3 rounded-lg border bg-gray-50">
+              <div className="text-xs text-gray-500">Latest Confidence</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {latestTickConfidence == null ? '--' : `${latestTickConfidence.toFixed(1)}%`}
+              </div>
+            </div>
+            <div className="p-3 rounded-lg border bg-gray-50">
+              <div className="text-xs text-gray-500">Live Predictions</div>
+              <div className="text-lg font-semibold text-gray-800">{realtimePredictions.length}</div>
+            </div>
+          </div>
+
+          {videoUrl && (
+            <div className="rounded-lg overflow-hidden bg-black">
+              <video ref={videoRef} src={videoUrl} controls className="w-full max-h-[360px] object-contain" />
+            </div>
+          )}
+
+          {realtimePredictions.length > 0 && (
+            <div className="space-y-2">
+              {realtimePredictions.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center justify-between p-2 border rounded ${
+                    item.isDetection ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className={`text-sm font-medium ${item.isDetection ? 'text-red-800' : 'text-slate-700'}`}>
+                    Prediction: {item.label}
+                  </div>
+                  <div className={`text-xs ${item.isDetection ? 'text-red-700' : 'text-slate-600'}`}>
+                    {formatClock(item.time)} • {item.confidence.toFixed(1)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {realtimeEvents.length > 0 && (
+            <div className="space-y-2">
+              {realtimeEvents.map((event) => (
+                <div key={event.id} className="flex items-center justify-between p-2 border rounded bg-red-50 border-red-200">
+                  <div className="text-sm text-red-800 font-medium">{event.label}</div>
+                  <div className="text-xs text-red-700">
+                    {formatClock(event.time)} • {event.confidence.toFixed(1)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Live Alerts */}
       {liveAlerts.length > 0 && (

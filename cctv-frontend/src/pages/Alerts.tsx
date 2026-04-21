@@ -45,9 +45,19 @@ interface AlertsResponse {
   alerts: AlertItem[]
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+
+const getErrorMessage = async (res: Response, fallback: string) => {
+  const err = await res.json().catch(() => ({ detail: res.statusText }))
+  const detail =
+    typeof err?.detail === 'string'
+      ? err.detail
+      : err?.detail?.message || err?.message || res.statusText
+  return detail || fallback
+}
+
 export default function Alerts() {
   const navigate = useNavigate()
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | AlertStatus>('all')
@@ -60,6 +70,24 @@ export default function Alerts() {
     alerts: [],
   })
 
+  const buildAlertsUrl = () => {
+    const params = new URLSearchParams()
+    if (statusFilter !== 'all') params.set('status', statusFilter)
+    if (videoSearch.trim()) params.set('video_search', videoSearch.trim())
+    const queryString = params.toString()
+    return `${API_BASE}/alerts${queryString ? `?${queryString}` : ''}`
+  }
+
+  const loadAlerts = async (signal?: AbortSignal) => {
+    const res = await fetch(buildAlertsUrl(), signal ? { signal } : undefined)
+    if (!res.ok) {
+      throw new Error(await getErrorMessage(res, 'Failed to load alerts'))
+    }
+
+    const json = (await res.json()) as AlertsResponse
+    setAlertsData(json)
+  }
+
   useEffect(() => {
     const controller = new AbortController()
 
@@ -67,21 +95,7 @@ export default function Alerts() {
       try {
         setLoading(true)
         setError(null)
-        const params = new URLSearchParams()
-        if (statusFilter !== 'all') params.set('status', statusFilter)
-        if (videoSearch.trim()) params.set('video_search', videoSearch.trim())
-        const qs = params.toString() ? `?${params.toString()}` : ''
-        const res = await fetch(`${API_BASE}/alerts${qs}`, { signal: controller.signal })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ detail: res.statusText }))
-          const detail =
-            typeof err?.detail === 'string'
-              ? err.detail
-              : err?.detail?.message || err?.message || res.statusText
-          throw new Error(detail || 'Failed to load alerts')
-        }
-        const json = (await res.json()) as AlertsResponse
-        setAlertsData(json)
+        await loadAlerts(controller.signal)
       } catch (err: unknown) {
         if ((err as Error).name === 'AbortError') return
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -95,27 +109,13 @@ export default function Alerts() {
   }, [API_BASE, statusFilter, videoSearch])
 
   const refetchAlerts = async () => {
-    const params = new URLSearchParams()
-    if (statusFilter !== 'all') params.set('status', statusFilter)
-    if (videoSearch.trim()) params.set('video_search', videoSearch.trim())
-    const qs = params.toString() ? `?${params.toString()}` : ''
-    const res = await fetch(`${API_BASE}/alerts${qs}`)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }))
-      const detail =
-        typeof err?.detail === 'string'
-          ? err.detail
-          : err?.detail?.message || err?.message || res.statusText
-      throw new Error(detail || 'Failed to refresh alerts')
-    }
-    const json = (await res.json()) as AlertsResponse
-    setAlertsData(json)
+    await loadAlerts()
   }
 
-  const alerts = useMemo(() => alertsData.alerts, [alertsData.alerts])
+  const alerts = alertsData.alerts
 
   const videoSuggestions = useMemo(() => {
-    const uniqueNames = Array.from(
+    const uniqueNames: string[] = Array.from(
       new Set(
         alertsData.alerts
           .map((a) => (a.filename || '').trim())
@@ -127,7 +127,7 @@ export default function Alerts() {
     if (!q) return uniqueNames.slice(0, 8)
 
     return uniqueNames
-      .filter((name) => name.toLowerCase().includes(q))
+      .filter((name: string) => name.toLowerCase().includes(q))
       .slice(0, 8)
   }, [alertsData.alerts, searchInput])
 

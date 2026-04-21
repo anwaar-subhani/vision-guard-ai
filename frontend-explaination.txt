@@ -1,0 +1,313 @@
+FRONTEND DOCUMENTATION (cctv-frontend)
+Project root: c:\Users\anwaa\Desktop\cctv\cctv-frontend
+Generated on: 2026-04-19
+
+====================================================================
+HOW TO READ THIS FILE
+====================================================================
+For each folder/file below, I include:
+- Purpose: what it does in plain English
+- Ownership: who created/maintains it
+
+Ownership labels:
+- [DEVELOPER] = authored/maintained by you (application logic/UI)
+- [TOOLING SCAFFOLD] = created by project starter tools (Vite/Tailwind/etc.) then often edited by developer
+- [AUTO-GENERATED] = created automatically by install/build/dev tools
+- [THIRD-PARTY PACKAGE] = external dependency files from npm packages
+
+
+====================================================================
+TOP-LEVEL FOLDER + FILE MAP (COMPLETE FOR PROJECT RELEVANT CONTENT)
+====================================================================
+
+cctv-frontend/
+│
+├─ .env                                           [DEVELOPER]
+│  Purpose:
+│  - Stores local environment variables used by the frontend at build/runtime.
+│  - In your project, VITE_API_BASE points frontend API calls to backend (http://localhost:8000).
+│
+├─ .git/                                          [AUTO-GENERATED]
+│  Purpose:
+│  - Git internal metadata for version control (commits, references, object database).
+│  - Not application logic.
+│  Important contents observed:
+│  - COMMIT_EDITMSG, config, description, HEAD, index
+│  - hooks/, info/, logs/, objects/, refs/
+│
+├─ .gitignore                                     [TOOLING SCAFFOLD]
+│  Purpose:
+│  - Tells Git which files/folders to ignore (node_modules, dist, logs, editor temp files).
+│  - Protects repo from huge generated artifacts.
+│
+├─ components.json                                [TOOLING SCAFFOLD]
+│  Purpose:
+│  - shadcn/ui configuration file.
+│  - Defines style mode, tailwind config path, CSS path, and import aliases.
+│  - Helps CLI/code generators place UI components correctly.
+│
+├─ dist/                                          [AUTO-GENERATED]
+│  Purpose:
+│  - Production build output from `npm run build`.
+│  - Deployable static assets (HTML/CSS/JS).
+│  Contents observed:
+│  - index.html
+│  - vite.svg
+│  - assets/
+│    - index-DJ3PxdGo.js
+│    - index-vDC4aaGf.css
+│
+├─ index.html                                     [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+│  Purpose:
+│  - Single HTML shell for the SPA.
+│  - Mount point (`<div id="root">`) and script entry (`/src/main.tsx`).
+│  - Also sets title and viewport metadata.
+│
+├─ node_modules/                                  [AUTO-GENERATED + THIRD-PARTY PACKAGE]
+│  Purpose:
+│  - Installed npm dependencies and their internal files.
+│  - Created by `npm install`.
+│  - Never manually maintained for app logic.
+│
+│  Important top-level entries observed:
+│  - .bin/, .vite/, .vite-temp/, .package-lock.json
+│  - scoped libs: @vitejs, @types, @radix-ui, @babel, @tailwindcss, etc.
+│  - core deps: react, react-dom, react-router-dom, lucide-react, vite, tailwindcss, typescript, postcss, etc.
+│
+│  Note:
+│  - This folder contains thousands of files from packages.
+│  - They are package-managed artifacts, not developer-authored app source.
+│
+├─ package-lock.json                              [AUTO-GENERATED]
+│  Purpose:
+│  - Exact dependency lockfile produced by npm.
+│  - Ensures reproducible installs across machines.
+│
+├─ package.json                                   [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+│  Purpose:
+│  - Project manifest: scripts, dependencies, devDependencies, metadata.
+│  - Scripts used:
+│    - dev = vite
+│    - build = tsc && vite build
+│    - preview = vite preview
+│
+├─ postcss.config.js                              [TOOLING SCAFFOLD]
+│  Purpose:
+│  - PostCSS pipeline config.
+│  - Runs Tailwind and Autoprefixer during build/dev CSS processing.
+│
+├─ public/                                        [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+│  Purpose:
+│  - Static assets copied as-is to build output.
+│  Contents observed:
+│  - vite.svg (default Vite icon currently used as favicon in index.html)
+│
+├─ src/                                           [DEVELOPER]
+│  Purpose:
+│  - Main application source code (React + TypeScript + styles).
+│  - This is where app behavior and UI are implemented.
+│
+├─ tailwind.config.js                             [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+│  Purpose:
+│  - Tailwind theme/content config.
+│  - Defines content scan paths and design tokens (colors/radius via CSS vars).
+│
+├─ tsconfig.json                                  [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+│  Purpose:
+│  - TypeScript compiler rules for strict typing and module behavior.
+│  - Includes `src` directory and Vite client types.
+│
+└─ vite.config.ts                                 [TOOLING SCAFFOLD + DEVELOPER EDITABLE]
+   Purpose:
+   - Vite bundler/dev-server config.
+   - Uses React plugin and custom server settings (port/open/host).
+
+
+====================================================================
+DETAILED BREAKDOWN: src/
+====================================================================
+
+src/
+│
+├─ App.tsx                                        [DEVELOPER]
+│  Purpose:
+│  - Root app routing map.
+│  - Wraps all pages with `Layout` and defines route → page mapping:
+│    - /            -> Dashboard
+│    - /analysis    -> VideoAnalysis
+│    - /alerts      -> Alerts
+│    - /analytics   -> Analytics
+│
+├─ main.tsx                                       [DEVELOPER]
+│  Purpose:
+│  - Frontend entry point.
+│  - Gets root DOM element, mounts React app, loads global stylesheet.
+│
+├─ style.css                                      [DEVELOPER]
+│  Purpose:
+│  - Global CSS + Tailwind layers.
+│  - Defines design variables (light/dark tokens) and mobile behavior fixes.
+│
+├─ components/                                    [DEVELOPER]
+│  Purpose:
+│  - Reusable UI building blocks used across pages.
+│
+│  ├─ Layout.tsx                                  [DEVELOPER]
+│  │  Purpose:
+│  │  - Shared shell (header, sidebar, navigation, main content container).
+│  │  - Handles active nav highlighting and mobile sidebar behavior.
+│  │
+│  └─ ui/                                         [DEVELOPER (from shadcn patterns)]
+│     Purpose:
+│     - Generic presentational primitives used everywhere.
+│
+│     ├─ badge.tsx                                [DEVELOPER]
+│     │  Purpose:
+│     │  - Small status chip component with style variants.
+│     │
+│     ├─ button.tsx                               [DEVELOPER]
+│     │  Purpose:
+│     │  - Reusable Button component with size/variant style maps.
+│     │  - Supports `asChild` composition pattern using Radix Slot.
+│     │
+│     └─ card.tsx                                 [DEVELOPER]
+│        Purpose:
+│        - Reusable card primitives (Card, CardHeader, CardTitle, etc.).
+│
+├─ lib/                                           [DEVELOPER]
+│  Purpose:
+│  - Utility helpers.
+│
+│  └─ utils.ts                                    [DEVELOPER]
+│     Purpose:
+│     - `cn(...)` helper to merge conditional classes safely (clsx + tailwind-merge).
+│
+└─ pages/                                         [DEVELOPER]
+   Purpose:
+   - Route-level screens.
+
+   ├─ Dashboard.tsx                               [DEVELOPER]
+   │  Purpose:
+   │  - Home overview page.
+   │  - Fetches backend stats (/stats/overview), shows KPIs, recent analyses, quick actions.
+   │
+   ├─ VideoAnalysis.tsx                           [DEVELOPER]
+   │  Purpose:
+   │  - Upload + process video page.
+   │  - Lets user choose anomaly types, streams processing events, renders detection results,
+   │    seeks to timestamps, and overlays alert/bounding-box visuals.
+   │
+   ├─ Alerts.tsx                                  [DEVELOPER]
+   │  Purpose:
+   │  - Security alert list page.
+   │  - Fetches/filter/searches alerts, shows severity/status, allows resolve/unresolve,
+   │    and deep-links into video analysis by timestamp.
+   │
+   ├─ Analytics.tsx                               [DEVELOPER]
+   │  Purpose:
+   │  - Frequency analytics page.
+   │  - Reads anomaly breakdown from backend and renders bar visualization.
+   │
+   └─ LiveMonitoring.tsx                          [DEVELOPER]
+      Purpose:
+      - Live monitoring UI screen with camera cards and live alert mock data.
+      - Primarily presentational in current version.
+
+
+====================================================================
+DETAILED BREAKDOWN: public/
+====================================================================
+
+public/
+└─ vite.svg                                       [TOOLING SCAFFOLD]
+   Purpose:
+   - Default Vite icon.
+   - Currently used as favicon via index.html.
+
+
+====================================================================
+DETAILED BREAKDOWN: dist/ (BUILD OUTPUT)
+====================================================================
+
+dist/
+├─ index.html                                     [AUTO-GENERATED]
+│  Purpose:
+│  - Production HTML generated by Vite build.
+│
+├─ vite.svg                                       [AUTO-GENERATED COPY]
+│  Purpose:
+│  - Static asset copied from `public/` into output.
+│
+└─ assets/                                        [AUTO-GENERATED]
+   ├─ index-DJ3PxdGo.js
+   │  Purpose:
+   │  - Bundled and optimized application JavaScript.
+   │
+   └─ index-vDC4aaGf.css
+      Purpose:
+      - Bundled and optimized application CSS.
+
+
+====================================================================
+WHICH FILES CAME FROM INSTALL/TOOLS VS DEVELOPER
+====================================================================
+
+A) Mostly from package installation / tool execution:
+- node_modules/**                                  (npm install)
+- package-lock.json                                (npm install/update)
+- dist/**                                          (npm run build)
+- .git/**                                          (git init + git operations)
+
+B) Scaffolded by starter tools but expected to be edited by developer:
+- package.json
+- index.html
+- tsconfig.json
+- vite.config.ts
+- postcss.config.js
+- tailwind.config.js
+- .gitignore
+- public/vite.svg
+- components.json (if shadcn setup used)
+
+C) Developer-authored application code (main business/UI logic):
+- src/App.tsx
+- src/main.tsx
+- src/style.css
+- src/components/Layout.tsx
+- src/components/ui/button.tsx
+- src/components/ui/card.tsx
+- src/components/ui/badge.tsx
+- src/lib/utils.ts
+- src/pages/Dashboard.tsx
+- src/pages/VideoAnalysis.tsx
+- src/pages/Alerts.tsx
+- src/pages/Analytics.tsx
+- src/pages/LiveMonitoring.tsx
+- .env (project local runtime config written/maintained by developer)
+
+
+====================================================================
+IMPORTANT PRACTICAL NOTES FOR A BEGINNER
+====================================================================
+
+1) If you accidentally delete node_modules:
+   - It is safe. Run npm install again.
+
+2) If you accidentally delete dist:
+   - It is safe. Run npm run build again.
+
+3) Files you should focus on to learn/edit app behavior first:
+   - src/pages/*.tsx
+   - src/components/Layout.tsx
+   - src/App.tsx
+   - src/style.css
+
+4) Files you usually edit only when needed:
+   - vite.config.ts, tsconfig.json, tailwind.config.js, postcss.config.js
+
+5) File ownership summary in one line:
+   - Your real app = src/** + .env
+   - Tooling/install artifacts = node_modules/** + dist/** + package-lock.json (+ git internals)
+
+
+END OF DOCUMENT

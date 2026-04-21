@@ -1,0 +1,66 @@
+# ===============================
+# Local database data (do not commit)
+# ===============================
+mongo-data/
+.mongodb-data/
+
+# ===============================
+# Secrets / env files
+# ===============================
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ===============================
+# Python
+# ===============================
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.coverage
+**/.coverage.*
+**/htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+**/.venv/
+
+# ===============================
+# Backend runtime artifacts
+# ===============================
+cctv-backend/uploads/
+!cctv-backend/uploads/.gitkeep
+cctv-backend/uploads/processed/
+
+# ===============================
+# Node / frontend
+# ===============================
+node_modules/
+**/node_modules/
+cctv-frontend/dist/
+**/dist/
+*.tsbuildinfo
+
+# ===============================
+# Logs / temp / OS
+# ===============================
+*.log
+*.tmp
+*.temp
+Thumbs.db
+.DS_Store
+
+# ===============================
+# Editors
+# ===============================
+.vscode/.ropeproject/
+.idea/

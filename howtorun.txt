@@ -1,26 +1,22 @@
 # Terminal 1: BACKEND
 cd c:\Users\anwaa\Desktop\cctv\cctv-backend
 
-# If backend is Python:
+# One-time (if .venv does not exist):
 py -m venv .venv
+
+# Every run:
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python app.py
-# (or: python main.py)
-
-# If backend is Node.js:
-npm install
-npm run dev
-# (or: npm start)
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 
 # Terminal 2: FRONTEND
-cd c:\Users\anwaa\Desktop\cctv\frontend
+cd c:\Users\anwaa\Desktop\cctv\cctv-frontend
 npm install
 npm run dev
-# (or: npm start)
 
 
+# MongoDB (separate terminal, keep it open):
+& "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath "c:\Users\anwaa\Desktop\cctv\mongo-data" --bind_ip 127.0.0.1 --port 27017
 
-
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# Use only one Mongo data folder for this project: c:\Users\anwaa\Desktop\cctv\mongo-data

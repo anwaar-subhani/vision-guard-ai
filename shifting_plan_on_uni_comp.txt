@@ -1,0 +1,223 @@
+CCTV Project Shift Plan (GitHub -> Another PC)
+Date: 2026-04-21
+
+Goal
+- Push current project to GitHub.
+- Clone on another PC.
+- Perform complete setup with minimal dependency issues.
+- Support new MongoDB host (local or remote).
+
+====================================================================
+A) SOURCE PC (CURRENT MACHINE): PREPARE REPO FOR GITHUB
+====================================================================
+
+1) Verify project root
+- Project root should be:
+  c:\Users\anwaa\Desktop\cctv
+
+2) Create/update .gitignore (very important)
+Make sure these are ignored before push:
+- .venv/
+- **/.venv/
+- node_modules/
+- dist/
+- __pycache__/
+- *.pyc
+- uploads/
+- mongo-data/
+- .env
+- *.log
+- .DS_Store
+
+Also keep these tracked files in repo:
+- cctv-backend/.env.example
+- cctv-backend/uploads/.gitkeep
+
+Reason:
+- Avoid pushing machine-specific binaries, local DB files, temp uploads, and secrets.
+
+3) Ensure model files are present in repo (or Git LFS)
+Expected backend model folder:
+- cctv-backend/models/
+
+If model files are large and exceed GitHub limits, use Git LFS for:
+- *.pth
+- *.keras
+- *.pt
+
+4) Commit and push
+- Initialize git (if not already), add remote, commit, push to GitHub.
+- Verify repo contains:
+  - cctv-backend/
+  - cctv-frontend/
+  - howtorun.txt
+  - shifting_plan_on_uni_comp.txt
+
+5) IMPORTANT dependency rule (to avoid previous issue)
+- Do NOT manually install unpinned tensorflow versions like 2.21 in this project env.
+- Use only versions from requirements.txt.
+- If you manually install extra packages, you can break fall detection (mediapipe/protobuf conflict).
+
+====================================================================
+B) TARGET PC (ANOTHER MACHINE): COMPLETE SETUP
+====================================================================
+
+Pre-requisites on target PC
+- Windows 10/11
+- Git
+- Python 3.12.x
+- Node.js LTS (18+ or 20+)
+- MongoDB Server (if hosting DB locally)
+- Enough disk space (recommended 15+ GB free)
+
+1) Clone repository
+- Choose folder (example): c:\Users\<you>\Desktop
+- Clone repo:
+  git clone <YOUR_GITHUB_REPO_URL>
+- Open cloned project root in VS Code.
+
+2) Backend setup (from project root)
+Use one dedicated backend virtual environment (inside cctv-backend):
+
+- cd cctv-backend
+- py -m venv .venv
+- .\.venv\Scripts\Activate.ps1
+- python -m pip install --upgrade pip setuptools wheel
+- pip install -r requirements.txt
+
+Notes:
+- Use only requirements.txt to keep dependency compatibility.
+- Do not install tensorflow-cpu without version pin.
+
+3) Frontend setup
+- cd ..\cctv-frontend
+- npm install
+
+4) Environment file for backend
+Create env from template:
+- cctv-backend\.env.example -> cctv-backend\.env
+
+Recommended template:
+
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB_NAME=cctv
+AUTO_DELETE_UPLOADS=false
+
+If using remote Mongo host, update MONGODB_URI accordingly (see section D).
+
+5) Start backend
+- cd ..\cctv-backend
+- .\.venv\Scripts\Activate.ps1
+- uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+6) Start frontend (separate terminal)
+- cd cctv-frontend
+- npm run dev
+
+7) Open app
+- Frontend usually: http://localhost:5173
+- Backend API: http://localhost:8000
+
+====================================================================
+C) MONGODB SETUP OPTIONS (NEW HOST)
+====================================================================
+
+Option 1: Mongo on same target PC (recommended easiest)
+
+Start Mongo in separate terminal:
+& "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath "c:\Users\<you>\Desktop\cctv\mongo-data" --bind_ip 127.0.0.1 --port 27017
+
+Backend .env:
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB_NAME=cctv
+
+Option 2: Mongo on different machine (remote host)
+
+On Mongo host machine:
+- Start mongod with LAN bind address, example:
+  --bind_ip 0.0.0.0 --port 27017
+  (or safer: --bind_ip 127.0.0.1,<LAN_IP>)
+
+- Open firewall for TCP 27017.
+
+On target app machine (backend .env):
+MONGODB_URI=mongodb://<MONGO_HOST_IP>:27017
+MONGODB_DB_NAME=cctv
+
+If auth is enabled:
+MONGODB_URI=mongodb://<username>:<password>@<MONGO_HOST_IP>:27017/?authSource=admin
+
+Security note:
+- Never expose open MongoDB to public internet.
+- Prefer LAN/VPN, authentication, and firewall restrictions.
+
+====================================================================
+D) VERIFY EVERYTHING (POST-SETUP CHECKLIST)
+====================================================================
+
+1) Health endpoint
+- Open: http://localhost:8000/health
+- Expect successful response.
+
+2) Frontend connectivity
+- Frontend loads dashboard without API CORS errors.
+
+3) Realtime modes quick test
+- Gunshot mode: starts and returns tick/prediction events.
+- Fall mode: should not show FieldDescriptor/protobuf error.
+- Scream mode: should run (model path if TF stack available, fallback otherwise).
+
+4) Mongo write test
+- Process one video.
+- Check that video/detection records are created in DB.
+
+====================================================================
+E) TROUBLESHOOTING (MOST IMPORTANT)
+====================================================================
+
+Problem: sudden_fall_visual fails with protobuf/FieldDescriptor error
+- Cause: incompatible tensorflow/protobuf/mediapipe mix.
+- Fix:
+  1) Activate backend .venv
+  2) pip install -r requirements.txt
+  3) Remove manually installed conflicting TF versions
+  4) Ensure protobuf version matches requirements
+
+Problem: scream mode tensorflow import issues
+- Use pinned requirements only.
+- Avoid unpinned tensorflow installs.
+- Ensure sufficient disk space before installing dependencies.
+
+Problem: Mongo connection refused
+- Check mongod is running.
+- Verify --port and --bind_ip.
+- Verify .env MONGODB_URI host/port.
+- If remote, check firewall and network routing.
+
+Problem: frontend cannot call backend
+- Verify backend running on :8000.
+- Verify frontend env/API base URL if customized.
+
+====================================================================
+F) RECOMMENDED OPERATION RULES (TO AVOID FUTURE BREAKAGE)
+====================================================================
+
+1) Always install from requirements.txt (backend) and package.json (frontend).
+2) Do not mix random pip installs into this env.
+3) Keep one Mongo data folder per project environment.
+4) Store secrets only in .env (never commit).
+5) Before major upgrades, make a backup branch and freeze package versions.
+
+====================================================================
+G) QUICK START (TARGET PC) - COPY ORDER
+====================================================================
+
+1) Clone repo
+2) Start MongoDB
+3) Setup backend venv and pip install -r requirements.txt
+4) Create backend .env (with correct Mongo host)
+5) Run backend uvicorn
+6) Run frontend npm dev
+7) Test health and process one video
+
+Done.
