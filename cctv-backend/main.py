@@ -20,6 +20,8 @@ from api.routes.analytics_routes import router as analytics_router
 from api.routes.process_routes import router as process_router
 from core import app_state as st
 from detectors.scream_detector import preload_models as preload_scream_models
+from detectors.fire_detector import preload_model as preload_fire_model
+from detectors.crowd_detector import preload_model as preload_crowd_model
 
 app = FastAPI(title="CCTV Backend – Anomaly Detection")
 
@@ -49,4 +51,8 @@ for router in ALL_ROUTERS:
 async def _warmup_models() -> None:
     """Best-effort model warmup to reduce first realtime inference latency."""
     ok, message = preload_scream_models(str(st.MODEL_DIR))
+    print(f"[startup] {message}")
+    ok, message = preload_fire_model(str(st.MODEL_DIR))
+    print(f"[startup] {message}")
+    ok, message = preload_crowd_model(str(st.MODEL_DIR))
     print(f"[startup] {message}")

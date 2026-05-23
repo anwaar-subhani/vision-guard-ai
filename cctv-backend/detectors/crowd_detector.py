@@ -27,7 +27,7 @@ MAX_CROWD_BBOX_AREA_RATIO = 0.18
 MIN_PEOPLE_FOR_CLUSTER_CHECK = 5
 MAX_MEAN_PAIRWISE_DIST_RATIO = 0.22
 
-TARGET_INFER_FPS = 6.0
+TARGET_INFER_FPS = 3.0
 EVENT_COOLDOWN_SEC = 1.0
 
 USE_RESTRICTED_ZONE = False
@@ -362,3 +362,16 @@ def detect(video_path: str, model_dir: str) -> Iterator[dict]:
             "label": "Crowd Gathering",
             "bbox": frame_result.get("bbox"),
         }
+
+
+def preload_model(model_dir: str) -> tuple[bool, str]:
+    model_path = os.path.join(model_dir, MODEL_FILENAME)
+    if not os.path.exists(model_path):
+        return False, f"Crowd model not found at {model_path}"
+
+    try:
+        _load_model(model_path)
+    except Exception as exc:
+        return False, f"Crowd model warmup failed: {exc}"
+
+    return True, "Crowd model loaded"

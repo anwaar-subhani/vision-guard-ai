@@ -221,8 +221,9 @@ export default function VideoAnalysis() {
     return Object.values(bestByKey).sort((a, b) => a.time - b.time)
   }
 
-  // Only time-filter during active processing; once done, always show all results
-  const rawVisible = isProcessing
+  // Time-filter while the video is playing or processing so events reveal with playback.
+  const shouldTimeGate = isProcessing || isVideoPlaying
+  const rawVisible = shouldTimeGate
     ? allEvents.filter((e) => e.time <= currentTime)
     : allEvents
   const visibleEvents = mergeEvents(rawVisible)
@@ -360,6 +361,7 @@ export default function VideoAnalysis() {
       const formData = new FormData()
       formData.append('file', uploadedVideo)
       formData.append('anomaly_types', JSON.stringify(selectedIds))
+      formData.append('realtime', 'true')
 
       const res = await fetch(`${API_BASE}/process-video`, {
         method: 'POST',

@@ -12,12 +12,13 @@ import importlib
 from typing import Iterator, List
 
 import cv2
+import torch
 
 
 MODEL_FILENAME = "fire_model_best.pt"
 CONF_THRESHOLD = 0.35
 TARGET_INFER_FPS = 6.0
-EVENT_COOLDOWN_SEC = 0.75
+EVENT_COOLDOWN_SEC = 0.0
 
 
 _cached_model = None
@@ -34,6 +35,10 @@ def _import_yolo():
             f"Import error: {exc}"
         )
     return YOLO
+
+
+def _auto_device() -> str:
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def _load_model(model_path: str):
@@ -116,6 +121,7 @@ def stream_inference(
         threshold = float(conf_threshold) if conf_threshold is not None else CONF_THRESHOLD
         threshold = max(0.01, min(0.99, threshold))
         frame_idx = -1
+        device = _auto_device()
 
         while True:
             ok, frame = cap.read()
@@ -129,7 +135,7 @@ def stream_inference(
             t_sec = frame_idx / fps
             end_t = t_sec + (frame_stride / fps)
 
-            results = model.predict(frame, conf=0.01, verbose=False)
+            results = model.predict(frame, conf=0.01, verbose=False, device=device)
             if not results:
                 yield {
                     "time": round(t_sec, 2),
@@ -188,3 +194,16 @@ def detect(video_path: str, model_dir: str):
             "label": "Explosion/Fire",
             "bbox": frame_result.get("bbox"),
         }
+
+
+def preload_model(model_dir: str) -> tuple[bool, str]:
+    model_path = os.path.join(model_dir, MODEL_FILENAME)
+    if not os.path.exists(model_path):
+        return False, f"Fire model not found at {model_path}"
+
+    try:
+        _load_model(model_path)
+    except Exception as exc:
+        return False, f"Fire model warmup failed: {exc}"
+
+    return True, "Fire model loaded"

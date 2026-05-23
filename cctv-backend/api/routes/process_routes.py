@@ -23,6 +23,13 @@ from detectors.crowd_detector import stream_inference as stream_crowd_inference
 router = APIRouter(tags=["processing"])
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 RealtimeStreamFn = Callable[..., Any]
 
 REALTIME_MODE_CONFIG: dict[str, dict[str, Any]] = {
@@ -79,7 +86,7 @@ REALTIME_MODE_CONFIG: dict[str, dict[str, Any]] = {
         "default_prediction": "No Crowd",
         "threshold_pct": 65.0,
         "stream_fn": stream_crowd_inference,
-        "stream_kwargs": {"target_infer_fps": 6.0, "conf_threshold": 0.35},
+        "stream_kwargs": {"target_infer_fps": 3.0, "conf_threshold": 0.35},
     },
 }
 
@@ -312,6 +319,7 @@ def _persist_detection_if_possible(video_doc_id, anomaly_id: str, event: dict[st
 async def process_video(
     file: UploadFile = File(...),
     anomaly_types: str = Form(...),
+    realtime: bool = Form(True),
 ):
     """
     Upload a video and stream detection results as Server-Sent Events.
@@ -346,8 +354,15 @@ async def process_video(
         def run_detector(anomaly_id: str):
             nonlocal event_count
             detect_fn = st.DETECTOR_REGISTRY[anomaly_id]
+            start_wall_time = time.monotonic()
             try:
                 for event in detect_fn(str(dest_path), str(st.MODEL_DIR)):
+                    if realtime:
+                        event_time = _safe_float(event.get("time"), 0.0)
+                        wait_time = event_time - (time.monotonic() - start_wall_time)
+                        if wait_time > 0:
+                            time.sleep(wait_time)
+
                     if video_doc_id is not None:
                         try:
                             st.detections_col.insert_one(
