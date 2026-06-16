@@ -2,7 +2,7 @@
 
 ## Overview
 
-We built a smart surveillance system that detects different visual and audio anomalies from live CCTV footage. The system uses multiple deep learning models to identify events like fights, sudden falls, fire, crowd detection, gunshots, and human screams. I mainly worked on two modules: Gunshot Detection and Human Scream Detection. I’ll briefly explain both below.
+We built a smart surveillance system that detects different visual and audio anomalies from live CCTV footage. The system uses multiple deep learning models to identify events like fights, sudden falls, fire, crowd detection, gunshots, and human screams. The system also features a React-based frontend, and the trained models were exposed through FastAPI to handle real-time predictions. I mainly worked on two modules: Gunshot Detection and Human Scream Detection. I’ll briefly explain both below.
 
 ## Gunshot Detection Module
 
