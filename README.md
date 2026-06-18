@@ -8,7 +8,7 @@ We built a smart surveillance system that detects different visual and audio ano
 
 For gunshot detection, we started by collecting audio samples from Kaggle. Most of these recordings were clean (gunshots in silence), which wasn’t realistic for real-world scenarios. So we tried to make the data closer to real life by mixing gunshot sounds with different background noises like traffic, crowd, and ambience. We also added similar sounding noises like firecrackers and other loud bursts so the model doesn’t just classify every loud sound as a gunshot.
 
-After preprocessing, we had around 8,000 positive samples and 24,000 negative samples. For the model, we used ResNet-101 with Mel-spectrograms. We converted audio into spectrogram images and trained the model on those images. In the end, we achieved around 96% FI score on unseen test data.
+After preprocessing, we had around 8,000 positive samples and 24,000 negative samples. For the model, we used ResNet-101 with Mel-spectrograms. We converted audio into spectrogram images and trained the model on those images. In the end, we achieved around 96% F1 score on unseen test data.
 
 ## Human Scream Detection Module
 
